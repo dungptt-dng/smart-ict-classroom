@@ -1,0 +1,10 @@
+# Chỉ đưa lên ứng dụng, tài liệu và ảnh chụp ứng dụng.
+# Không đưa SGK, thể lệ, mẫu của BTC, hồ sơ còn ô trống, cấu hình máy.
+/*
+!/.gitignore
+!/README.md
+!/index.html
+!/app/
+!/ho-so/
+/ho-so/*
+!/ho-so/anh-ung-dung/

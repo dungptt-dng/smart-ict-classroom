@@ -1,0 +1,1197 @@
+<title>AI Điều Phối Lớp Học Tin Học</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: bàn làm việc của giáo viên — thanh điều hướng theo 6 bước của buổi học bên trái, vùng thao tác bên phải; màu lấy từ áo xanh học sinh và màu vàng của biểu tượng thư mục */
+:root{
+  --bg:#f2f5fb; --surface:#ffffff; --surface-2:#e8eef8; --fg:#15213b; --muted:#56627a; --line:#d3dbea;
+  --accent:#1d4ed8; --accent-soft:#e3ebff; --accent-ink:#ffffff;
+  --folder:#e8a900; --folder-soft:#fff3c9; --folder-ink:#5a4100;
+  --ok:#17803f; --ok-soft:#dff4e7; --warn:#a85f00; --warn-soft:#fdecd2; --bad:#b93232; --bad-soft:#fbe3e3;
+  --ai:#0e7480; --ai-soft:#daf2f3;
+  --shadow:0 1px 2px rgba(21,33,59,.06),0 4px 14px rgba(21,33,59,.06);
+  --f-display:"Baloo 2","Be Vietnam Pro",system-ui,sans-serif;
+  --f-body:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --r:10px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0d1323; --surface:#141c30; --surface-2:#1b2540; --fg:#e7ecf7; --muted:#9ba8c4; --line:#2a3757;
+  --accent:#7aa2ff; --accent-soft:#1d2a4f; --accent-ink:#0d1323;
+  --folder:#f3c44a; --folder-soft:#3a3114; --folder-ink:#f7dd94;
+  --ok:#55c487; --ok-soft:#123020; --warn:#f1a948; --warn-soft:#3a2a10; --bad:#ff8a8a; --bad-soft:#3e1b1b;
+  --ai:#5cc9d2; --ai-soft:#0f2f33; --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1323; --surface:#141c30; --surface-2:#1b2540; --fg:#e7ecf7; --muted:#9ba8c4; --line:#2a3757;
+  --accent:#7aa2ff; --accent-soft:#1d2a4f; --accent-ink:#0d1323;
+  --folder:#f3c44a; --folder-soft:#3a3114; --folder-ink:#f7dd94;
+  --ok:#55c487; --ok-soft:#123020; --warn:#f1a948; --warn-soft:#3a2a10; --bad:#ff8a8a; --bad-soft:#3e1b1b;
+  --ai:#5cc9d2; --ai-soft:#0f2f33; --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 32px}
+h1,h2,h3{font-family:var(--f-display);line-height:1.15;text-wrap:balance;margin:0}
+h2{font-size:1.65rem;font-weight:800}
+h3{font-size:1.2rem;font-weight:700}
+p{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.small{font-size:.86rem}
+
+/* header */
+.top{max-width:1320px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding-block:18px 14px}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.logo{width:44px;height:44px;flex:none}
+.brand h1{font-size:1.45rem;font-weight:800;letter-spacing:.01em}
+.brand .sub{font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.top .meta{margin-left:auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 11px;font-size:.8rem;font-weight:600;border:1px solid var(--line);background:var(--surface);white-space:nowrap}
+.pill .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.pill.demo{background:var(--folder-soft);color:var(--folder-ink);border-color:transparent}
+.pill.ai-ready .dot{background:var(--ok)} .pill.ai-off .dot{background:var(--warn)}
+
+.shell{max-width:1320px;margin:0 auto;display:grid;grid-template-columns:236px minmax(0,1fr);gap:22px;align-items:start}
+nav.steps{position:sticky;top:max(12px,env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px}
+nav.steps button{display:flex;align-items:center;gap:10px;text-align:left;border:0;background:transparent;border-radius:9px;padding:9px 10px;cursor:pointer;font-weight:600;color:var(--fg)}
+nav.steps button:hover{background:var(--surface-2)}
+nav.steps button[aria-current="page"]{background:var(--accent);color:var(--accent-ink)}
+nav.steps .n{width:24px;height:24px;flex:none;border-radius:7px;display:grid;place-items:center;font-size:.8rem;background:var(--surface-2);color:var(--muted);font-family:var(--f-display);font-weight:800}
+nav.steps button[aria-current="page"] .n{background:var(--accent-ink);color:var(--accent)}
+nav.steps .sep{height:1px;background:var(--line);margin:6px 4px}
+nav.steps .ai-n{background:var(--ai-soft);color:var(--ai)}
+main{min-width:0;display:flex;flex-direction:column;gap:18px}
+.view-head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 16px}
+.view-head p{max-width:70ch;color:var(--muted)}
+.view-head .grow{flex:1 1 380px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.eyebrow{font-size:.76rem;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--accent)}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel.flat{background:transparent;border-style:dashed}
+.panel-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.panel-title h3{flex:1 1 auto}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.stack{display:flex;flex-direction:column;gap:10px;min-width:0}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+/* form */
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field.full{grid-column:1/-1}
+.field label{font-weight:600;font-size:.9rem}
+.field .help{font-size:.8rem;color:var(--muted)}
+.field .err{font-size:.82rem;color:var(--bad);font-weight:600}
+input[type=text],input[type=number],select,textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 11px;min-width:0}
+textarea{resize:vertical;min-height:72px;line-height:1.5}
+input.invalid,select.invalid,textarea.invalid{border-color:var(--bad);background:var(--bad-soft)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:9px;padding:9px 15px;font-weight:700;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--fg);white-space:nowrap}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ai{background:var(--ai);border-color:var(--ai);color:var(--accent-ink)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.sm{padding:5px 10px;font-size:.84rem;border-radius:8px}
+.btn[disabled]{opacity:.5;cursor:not-allowed;filter:none}
+
+.chip{display:inline-flex;align-items:center;gap:5px;border-radius:6px;padding:1px 8px;font-size:.76rem;font-weight:700;letter-spacing:.02em;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.chip.may{background:var(--accent-soft);color:var(--accent)}
+.chip.tc{background:var(--folder-soft);color:var(--folder-ink)}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.bad{background:var(--bad-soft);color:var(--bad)}
+.chip.ai{background:var(--ai-soft);color:var(--ai)}
+.chip.lv-co-ban{background:var(--ok-soft);color:var(--ok)}
+.chip.lv-van-dung{background:var(--accent-soft);color:var(--accent)}
+.chip.lv-mo-rong{background:var(--folder-soft);color:var(--folder-ink)}
+
+.notice{border-radius:10px;padding:10px 13px;font-size:.9rem;display:flex;gap:10px;align-items:flex-start}
+.notice b{font-weight:700}
+.notice.warn{background:var(--warn-soft);color:var(--fg)} .notice.warn::before{content:"!";color:var(--warn)}
+.notice.bad{background:var(--bad-soft)} .notice.bad::before{content:"×";color:var(--bad)}
+.notice.info{background:var(--accent-soft)} .notice.info::before{content:"i";color:var(--accent)}
+.notice.ok{background:var(--ok-soft)} .notice.ok::before{content:"✓";color:var(--ok)}
+.notice.ai{background:var(--ai-soft)} .notice.ai::before{content:"AI";color:var(--ai);font-size:.75rem}
+.notice::before{font-weight:800;font-family:var(--f-display);flex:none;width:18px;text-align:center}
+.notice-list{display:flex;flex-direction:column;gap:8px}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.stat{background:var(--surface-2);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .v{font-family:var(--f-display);font-size:1.7rem;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .k{font-size:.82rem;color:var(--muted)}
+
+/* tables */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:var(--surface-2);font-weight:700;font-size:.82rem;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.c,th.c{text-align:center}
+.sched td{min-width:150px}
+.sched td.rh{min-width:96px;white-space:nowrap;font-weight:700}
+.cell{display:flex;flex-direction:column;gap:4px}
+.cell .t{font-size:.8rem;color:var(--muted);line-height:1.35}
+.cell .op{font-size:.78rem}
+.roles-mx td{min-width:62px;text-align:center}
+.roles-mx td.lbl{text-align:left;min-width:120px}
+.roles-mx input{padding:4px 7px;font-size:.85rem}
+.rtag{display:inline-block;border-radius:5px;padding:0 6px;font-size:.76rem;font-weight:800;margin:1px}
+.rtag.r1{background:var(--accent);color:var(--accent-ink)}
+.rtag.r2{background:var(--folder-soft);color:var(--folder-ink)}
+.rtag.r3{background:var(--ok-soft);color:var(--ok)}
+.rtag.r4{background:var(--bad-soft);color:var(--bad)}
+.rtag.rx{background:var(--surface-2);color:var(--muted)}
+
+/* role cards */
+.role-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.role-card{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;font-size:.86rem;background:var(--bg)}
+.role-card h4{margin:0;font-family:var(--f-display);font-size:1.02rem;display:flex;gap:8px;align-items:center}
+
+/* task cards */
+.tasks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.task{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.task.is-may{border-top:4px solid var(--accent)} .task.is-tc{border-top:4px solid var(--folder)}
+.task h4{margin:0;font-size:1.02rem;font-weight:700}
+.task ol,.task ul{margin:0;padding-left:20px;font-size:.9rem}
+.task .kv{font-size:.86rem}
+.task .kv b{font-weight:700}
+.task .hint{font-size:.84rem;background:var(--surface-2);border-radius:8px;padding:6px 9px}
+.task .src{font-size:.78rem;color:var(--muted)}
+.filters{display:flex;flex-wrap:wrap;gap:6px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;padding:6px 11px;font-weight:600;font-size:.84rem;cursor:pointer;color:var(--muted)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.seg.status button[aria-pressed="true"][data-v="chua"]{background:var(--surface-2);color:var(--fg)}
+.seg.status button[aria-pressed="true"][data-v="dang"]{background:var(--warn);color:var(--accent-ink)}
+.seg.status button[aria-pressed="true"][data-v="xong"]{background:var(--ok);color:var(--accent-ink)}
+
+/* progress */
+.runbar{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center}
+.timer{font-family:var(--f-display);font-size:2.4rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;min-width:4.2ch}
+.timer.over{color:var(--bad)}
+.bar{height:10px;border-radius:99px;background:var(--surface-2);overflow:hidden;flex:none;width:100%}
+.bar span{display:block;height:100%;background:var(--ok);border-radius:99px;transition:width .3s}
+.gcards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.gcard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.gcard.flag{border-color:var(--bad);box-shadow:0 0 0 2px var(--bad-soft)}
+.gcard header{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.gcard header h3{flex:1 1 auto;font-size:1.25rem}
+.trow{display:flex;flex-direction:column;gap:5px;padding-top:8px;border-top:1px dashed var(--line)}
+.trow .tt{font-size:.88rem;font-weight:600;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
+.gcard textarea{min-height:56px;font-size:.88rem}
+
+/* AI */
+.ai-layout{display:grid;grid-template-columns:290px minmax(0,1fr);gap:18px;align-items:start}
+.ai-list{display:flex;flex-direction:column;gap:6px}
+.ai-item{text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:11px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.ai-item b{font-size:.94rem}
+.ai-item span{font-size:.8rem;color:var(--muted)}
+.ai-item[aria-current="true"]{border-color:var(--ai);box-shadow:0 0 0 2px var(--ai-soft)}
+details.prompt summary{cursor:pointer;font-weight:600;font-size:.88rem;color:var(--ai)}
+details.prompt pre{white-space:pre-wrap;word-break:break-word;background:var(--surface-2);border-radius:9px;padding:10px;font-size:.8rem;max-height:320px;overflow:auto;margin:8px 0 0}
+.ai-out{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--bg);min-height:80px;font-size:.93rem}
+.ai-out ul,.ai-out ol{margin:4px 0 8px;padding-left:22px}
+.ai-out p{margin:0 0 6px}
+.ai-out h4{margin:8px 0 4px;font-size:.98rem}
+.ai-out.thinking{color:var(--muted);font-style:italic}
+.gen-task{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start;background:var(--surface)}
+.gen-task input{margin-top:5px}
+.saved{border-left:3px solid var(--ai);padding:4px 0 4px 12px;display:flex;flex-direction:column;gap:4px}
+
+.timeline{display:flex;flex-direction:column;gap:6px;font-size:.88rem}
+.timeline div{display:flex;gap:10px}
+.timeline time{color:var(--muted);font-variant-numeric:tabular-nums;flex:none;width:44px}
+
+/* modal + toast */
+.modal-bg{position:fixed;inset:0;background:rgba(10,16,30,.45);display:grid;place-items:center;z-index:50;padding:16px}
+.modal{background:var(--surface);border-radius:14px;padding:20px;max-width:560px;width:100%;display:flex;flex-direction:column;gap:14px;box-shadow:var(--shadow);max-height:90vh;overflow:auto}
+.modal textarea{min-height:220px;font-size:.82rem}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:10px;font-weight:600;z-index:60;font-size:.9rem;max-width:calc(100% - 32px)}
+
+.guide ol{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px}
+.guide p{max-width:72ch}
+
+@media (max-width:1100px){.gcards{grid-template-columns:repeat(2,minmax(0,1fr))}.role-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:900px){
+  .shell{grid-template-columns:minmax(0,1fr)}
+  nav.steps{position:static;flex-direction:row;overflow-x:auto;padding:6px}
+  nav.steps button{flex:none}
+  nav.steps .sep{display:none}
+  .ai-layout,.grid2,.tasks{grid-template-columns:minmax(0,1fr)}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:620px){.fields,.gcards,.role-cards,.grid3{grid-template-columns:minmax(0,1fr)}.brand h1{font-size:1.2rem}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="top">
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 44 44" aria-hidden="true"><rect x="2" y="9" width="40" height="29" rx="6" fill="var(--folder)"/><path d="M2 14a5 5 0 0 1 5-5h10l4 4h16a5 5 0 0 1 5 5v1H2z" fill="var(--folder-ink)" opacity=".25"/><circle cx="14" cy="26" r="3.2" fill="var(--accent)"/><circle cx="30" cy="26" r="3.2" fill="var(--accent)"/><circle cx="22" cy="21" r="3.2" fill="var(--accent)"/><path d="M14 26 22 21 30 26" stroke="var(--accent)" stroke-width="2" fill="none"/></svg>
+    <div><h1>AI Điều Phối Lớp Học Tin Học</h1><div class="sub">Smart ICT Classroom</div></div>
+  </div>
+  <div class="meta" id="meta"></div>
+</header>
+<div class="shell">
+  <nav class="steps" id="nav" aria-label="Các bước"></nav>
+  <main id="main"></main>
+</div>
+<div id="overlay"></div>
+
+<script>
+"use strict";
+/* ============ Dữ liệu mặc định (lấy từ học liệu của giáo viên và SGK) ============ */
+const LS_KEY = "smart-ict-classroom-v1";
+const ROLES = [
+  {id:"r1", abbr:"TT", name:"Người thao tác chính", en:"The Operator",
+   duty:"Trực tiếp sử dụng chuột và bàn phím để tạo thư mục, đặt tên và thực hiện tìm kiếm trên máy tính được phân công.",
+   rule:"Lắng nghe hiệu lệnh của bạn đọc nhiệm vụ và ý kiến của cả nhóm trước khi click chuột."},
+  {id:"r2", abbr:"ĐD", name:"Người đọc nhiệm vụ & dẫn dắt", en:"The Task Reader & Guide",
+   duty:"Đọc to các bước trong phiếu nhiệm vụ cho nhóm nghe, theo dõi tiến độ và nhắc nhở nhóm làm đúng từng bước một.",
+   rule:"Đảm bảo mọi thành viên trong nhóm đều hiểu rõ việc cần làm trước khi thao tác."},
+  {id:"r3", abbr:"KT", name:"Người kiểm tra", en:"The Checker",
+   duty:"Quan sát màn hình, kiểm tra xem cây thư mục đã đúng tên, đúng cấu trúc chưa; kiểm tra kết quả tìm kiếm tệp/thư mục đã chính xác chưa.",
+   rule:"Nhắc nhở người thao tác sửa ngay nếu phát hiện lỗi sai chính tả hoặc sai cấu trúc."},
+  {id:"r4", abbr:"BC", name:"Người báo cáo / đại diện", en:"The Reporter",
+   duty:"Sẵn sàng trả lời câu hỏi của giáo viên, trình bày kết quả hoặc chia sẻ cách làm của nhóm với các bạn nhóm bên cạnh khi ngồi tại chỗ (không di chuyển).",
+   rule:"Nói rõ ràng, tự tin khi đại diện nhóm."}
+];
+const SUPPORT = {abbr:"HT", name:"Thành viên hỗ trợ", duty:"Theo dõi, góp ý cho nhóm và nhận vai ở lượt sau (dùng khi nhóm có nhiều hơn 4 bạn)."};
+const SRC_PHIEU = "Phiếu thực hành “Xây dựng khu lưu trữ thông minh”";
+const SRC_CAUHOI = "Câu hỏi thảo luận tại chỗ";
+const DEFAULT_TASKS = [
+  {id:"t-may-1", type:"may", level:"co-ban", minutes:6, role:"r1", source:SRC_PHIEU,
+   title:"Bước 1: Tạo thư mục gốc",
+   steps:["Mở ổ đĩa D: trên máy tính.","Nháy chuột phải, chọn New → Folder.","Đặt tên thư mục là: HocTap_Khoi5."],
+   product:"Thư mục HocTap_Khoi5 trong ổ D:",
+   criteria:"Thư mục gốc HocTap_Khoi5 xuất hiện ở ổ D với đúng chính tả.", hint:""},
+  {id:"t-may-2", type:"may", level:"co-ban", minutes:6, role:"r1", source:SRC_PHIEU,
+   title:"Bước 2: Tạo cấu trúc cây thư mục con",
+   steps:["Mở thư mục HocTap_Khoi5.","Tạo lần lượt 3 thư mục con bên trong: Toan, TiengViet, TinHoc.","Nhấp đúp vào thư mục TinHoc, tạo thêm 2 thư mục con bên trong nó: LyThuyet và ThucHanh."],
+   product:"Cây thư mục: DATA (D:) → HocTap_Khoi5 → Toan, TiengViet, TinHoc → LyThuyet, ThucHanh",
+   criteria:"Cấu trúc cây phân cấp rõ ràng (thư mục LyThuyet và ThucHanh nằm bên trong TinHoc, TinHoc nằm trong HocTap_Khoi5).", hint:""},
+  {id:"t-may-3", type:"may", level:"van-dung", minutes:6, role:"r1", source:SRC_PHIEU,
+   title:"Bước 3: Sử dụng công cụ tìm kiếm",
+   steps:["Nhấp vào ô Search (hoặc nhấn phím Ctrl + F) / thanh tìm kiếm góc trên bên phải trong cửa sổ File Explorer.","Gõ từ khóa ThucHanh để tìm kiếm thư mục vừa tạo.","Tạo nhanh một tệp văn bản (Notepad) bất kỳ, đặt tên là BaiTap4.txt lưu trong thư mục LyThuyet. Sau đó dùng ô tìm kiếm để tìm lại tệp BaiTap4.txt."],
+   product:"Kết quả tìm kiếm thư mục ThucHanh và tệp BaiTap4.txt",
+   criteria:"Máy tính hiển thị chính xác kết quả tìm kiếm thư mục và tệp tin trong thời gian ngắn.", hint:""},
+  {id:"t-may-4", type:"may", level:"mo-rong", minutes:6, role:"r1", source:"SGK Tin học 5 (KNTT), Bài 4 – Vận dụng, tr.23",
+   title:"Vận dụng: Sắp xếp lại thư mục của em",
+   steps:["Vận dụng kiến thức trong bài để đặt lại tên, phân loại, sắp xếp các thư mục và tệp trong thư mục của em trên máy tính thực hành ở trường.","Lưu ý: Không thay đổi cấu trúc các thư mục khác trên máy tính."],
+   product:"Thư mục của nhóm được đặt tên và phân loại hợp lí",
+   criteria:"Tên rõ ràng, gợi nhớ nội dung; tệp được phân loại vào đúng thư mục; không làm thay đổi thư mục khác.", hint:"Dùng cho nhóm hoàn thành sớm."},
+  {id:"t-tc-1", type:"tai-cho", level:"co-ban", minutes:3, role:"r4", source:SRC_CAUHOI+" – Câu hỏi 1",
+   title:"Thảo luận: Vì sao cần sắp xếp theo “cây thư mục”?",
+   steps:["Tại sao chúng ta phải sắp xếp các thư mục theo dạng “cây thư mục” (có gốc, có nhánh) thay vì vứt tất cả các tệp linh tinh ra ngoài màn hình nền (Desktop)?","Em trao đổi với bạn ngồi cùng cụm bàn (không cần rời ghế)."],
+   product:"Câu trả lời của nhóm do người báo cáo trình bày",
+   criteria:"Nêu được lợi ích của việc sắp xếp theo cây thư mục.",
+   hint:"Gợi ý trả lời: Giúp quản lý ngăn nắp, dễ tìm kiếm khi cần và không làm máy tính bị lộn xộn."},
+  {id:"t-tc-2", type:"tai-cho", level:"van-dung", minutes:3, role:"r4", source:SRC_CAUHOI+" – Câu hỏi 2",
+   title:"Thảo luận: Tìm tệp HuyProgram",
+   steps:["Khi em muốn tìm một tệp tin hình ảnh có tên là HuyProgram nhưng lại quên mất nó nằm ở ổ đĩa nào, em sẽ gõ từ khóa gì vào ô tìm kiếm của máy tính?","Em trao đổi với bạn ngồi cùng cụm bàn (không cần rời ghế)."],
+   product:"Từ khóa và vị trí tìm kiếm nhóm chọn",
+   criteria:"Chọn đúng từ khóa và đúng nơi tìm kiếm.",
+   hint:"Gợi ý trả lời: Gõ trực tiếp chữ HuyProgram vào ô Search của This PC."},
+  {id:"t-tc-3", type:"tai-cho", level:"co-ban", minutes:3, role:"r2", source:"SGK Tin học 5 (KNTT), Bài 4 – Hoạt động, tr.19",
+   title:"So sánh hai cây thư mục (Hình 18, Hình 19)",
+   steps:["Quan sát hai cây thư mục trong Hình 18, Hình 19 (SGK trang 19).","Cây thư mục nào có cấu trúc hợp lí hơn? Tại sao?"],
+   product:"Lựa chọn của nhóm và lí do",
+   criteria:"Chỉ ra được cây thư mục phân loại tệp theo người sở hữu một cách thống nhất.",
+   hint:"SGK tr.20: Hình 19 là cây thư mục các tệp được phân theo loại tệp và lưu trong các thư mục có tên là tên người sở hữu."},
+  {id:"t-tc-4", type:"tai-cho", level:"van-dung", minutes:3, role:"r3", source:"SGK Tin học 5 (KNTT), Bài 4 – Luyện tập 1, tr.23",
+   title:"Luyện tập: Chọn cây thư mục hợp lí cho bạn An",
+   steps:["Quan sát ba phương án A, B, C (SGK trang 23).","Theo em, phương án nào là hợp lí để tạo cây thư mục lưu trữ các tệp của bạn An trong thư mục cá nhân?"],
+   product:"Phương án nhóm chọn và lí do",
+   criteria:"Giải thích được vì sao phương án được chọn hợp lí.",
+   hint:"Đáp án gợi ý: B (giáo viên kiểm tra lại)."},
+  {id:"t-tc-5", type:"tai-cho", level:"co-ban", minutes:2, role:"r2", source:"SGK Tin học 5 (KNTT), Bài 4, tr.20",
+   title:"Câu hỏi nhanh: Vì sao việc đặt tên cho thư mục và tệp lại quan trọng?",
+   steps:["Vì sao việc đặt tên cho thư mục và tệp lại quan trọng?"],
+   product:"Câu trả lời ngắn của nhóm",
+   criteria:"Nêu được: tên rõ ràng, gợi nhớ nội dung giúp tìm kiếm nhanh.",
+   hint:"SGK tr.20: Tên cần rõ ràng, gợi nhớ nội dung của thư mục hoặc tệp."},
+  {id:"t-tc-6", type:"tai-cho", level:"van-dung", minutes:2, role:"r3", source:"SGK Tin học 5 (KNTT), Bài 4 – Hình 21, tr.21",
+   title:"Câu hỏi nhanh: Công cụ tìm kiếm sẽ tìm ở đâu?",
+   steps:["Quan sát Hình 21 (SGK trang 21).","Sau khi nhập cụm từ Ho-Than-tho vào ô tìm kiếm và nhấn Enter thì công cụ tìm kiếm sẽ tìm thư mục hoặc tệp có tên Ho-Than-tho ở đâu? A. Trong ổ đĩa D:  B. Trong thư mục Anh-Bai-tap-nhom  C. Trong máy tính  D. Trong thư mục An"],
+   product:"Phương án nhóm chọn",
+   criteria:"Chọn đúng và giải thích: công cụ tìm kiếm tìm trong thư mục đang mở.",
+   hint:"Đáp án gợi ý: B – công cụ tìm kiếm tìm trong thư mục đang mở (SGK tr.21)."}
+];
+const LEVELS = {"co-ban":"Cơ bản","van-dung":"Vận dụng","mo-rong":"Mở rộng"};
+const TYPES = {"may":"Máy tính","tai-cho":"Tại chỗ"};
+const STATUS = {chua:"Chưa bắt đầu", dang:"Đang làm", xong:"Hoàn thành"};
+const DEFAULT_ASSIGN = ["t-may-1","t-may-2","t-may-3","t-tc-1","t-tc-2","t-tc-3","t-tc-4"];
+
+const clone = o => JSON.parse(JSON.stringify(o));
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = p => p + "-" + Math.random().toString(36).slice(2, 8);
+const pad = n => String(n).padStart(2, "0");
+const hhmm = t => { const d = new Date(t); return pad(d.getHours()) + ":" + pad(d.getMinutes()); };
+
+function makeGroups(L, prev){
+  const S = L.students, G = L.groups, base = Math.floor(S / G), extra = S % G;
+  const groups = []; let k = 1;
+  const prevLabels = {};
+  (prev || []).forEach(g => g.members.forEach(m => { prevLabels[m.code] = m.label; }));
+  for (let i = 0; i < G; i++){
+    const n = base + (i < extra ? 1 : 0), members = [];
+    for (let j = 0; j < n; j++){ const code = "HS" + pad(k++); members.push({code, label: prevLabels[code] || code}); }
+    groups.push({id:"g" + (i + 1), name:"Nhóm " + (i + 1), members});
+  }
+  return groups;
+}
+
+function defaultState(){
+  const lesson = {title:"Bài 4: Cây thư mục", grade:"5",
+    goals:"- Tạo được các thư mục với cấu trúc cây hợp lí.\n- Sử dụng được công cụ tìm kiếm trên máy tính để tìm các thư mục và các tệp.",
+    students:30, groups:6, computers:3, period:35, duration:24, slot:6};
+  const s = {v:1, isDemo:true, lesson, roles:clone(ROLES), groups:makeGroups(lesson), tasks:clone(DEFAULT_TASKS),
+    assign:{}, progress:{}, notes:{}, flags:{}, run:{round:2, remaining:null, endAt:null, running:false}, aiLog:[], log:[]};
+  s.groups.forEach(g => s.assign[g.id] = DEFAULT_ASSIGN.slice());
+  // Tiến độ minh họa: đang ở lượt 2
+  const P = (g, t, st) => s.progress[g + "|" + t] = {status:st, at:Date.now()};
+  ["g1","g2"].forEach(g => P(g, "t-may-1", "xong")); P("g3", "t-may-1", "dang");
+  ["g4","g5"].forEach(g => { P(g, "t-tc-1", "xong"); P(g, "t-tc-2", "xong"); }); P("g6", "t-tc-1", "xong"); P("g6", "t-tc-2", "dang");
+  P("g1", "t-tc-1", "dang");
+  s.notes.g3 = "(Minh họa) Gõ sai chính tả tên thư mục, người kiểm tra đã nhắc sửa.";
+  s.notes.g6 = "(Minh họa) Nhóm tranh luận lâu ở câu hỏi 2.";
+  const now = Date.now();
+  s.log = [
+    {at:now - 9 * 60000, text:"(Minh họa) Áp dụng phương án: 6 nhóm, 3 máy, 4 lượt × 6 phút."},
+    {at:now - 8 * 60000, text:"(Minh họa) Bắt đầu Lượt 1."},
+    {at:now - 2 * 60000, text:"(Minh họa) Chuyển sang Lượt 2."}
+  ];
+  return s;
+}
+
+let state;
+try { const raw = localStorage.getItem(LS_KEY); const o = raw ? JSON.parse(raw) : null; state = (o && o.v === 1 && o.lesson && o.groups) ? o : defaultState(); }
+catch(e){ state = defaultState(); }
+state.run.running = false; state.run.endAt = null;
+
+let saveOk = true;
+function save(){
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); saveOk = true; }
+  catch(e){ saveOk = false; }
+  renderMeta();
+}
+function log(text){ state.log.push({at:Date.now(), text}); }
+
+/* ============ Tính lịch luân phiên (quy tắc, không dùng AI) ============ */
+function validateLesson(d){
+  const e = {};
+  const int = v => Number.isInteger(+v) && String(v).trim() !== "";
+  if (!String(d.title || "").trim()) e.title = "Nhập tên bài học.";
+  if (!String(d.goals || "").trim()) e.goals = "Nhập ít nhất một mục tiêu để trợ lý AI bám theo.";
+  if (!int(d.students) || +d.students < 2 || +d.students > 60) e.students = "Sĩ số là số nguyên từ 2 đến 60.";
+  if (!int(d.groups) || +d.groups < 1) e.groups = "Số nhóm là số nguyên từ 1 trở lên.";
+  else if (!e.students && +d.groups > +d.students) e.groups = "Số nhóm không được lớn hơn sĩ số.";
+  if (!int(d.computers) || +d.computers < 0 || +d.computers > 60) e.computers = "Số máy là số nguyên từ 0 đến 60.";
+  if (!int(d.period) || +d.period < 20 || +d.period > 120) e.period = "Thời lượng tiết là số phút từ 20 đến 120.";
+  if (!int(d.duration) || +d.duration < 4) e.duration = "Thời gian hoạt động nhóm tối thiểu 4 phút.";
+  else if (!e.period && +d.duration > +d.period) e.duration = "Thời gian hoạt động nhóm không được dài hơn tiết học.";
+  if (!int(d.slot) || +d.slot < 2) e.slot = "Mỗi lượt tối thiểu 2 phút.";
+  else if (!e.duration && +d.slot > +d.duration) e.slot = "Mỗi lượt không được dài hơn thời gian hoạt động nhóm.";
+  return e;
+}
+function numLesson(d){ return {...d, students:+d.students, groups:+d.groups, computers:+d.computers, period:+d.period, duration:+d.duration, slot:+d.slot}; }
+
+function pack(list, nSlots, cap){
+  const slots = []; let i = 0;
+  for (let k = 0; k < nSlots; k++){
+    const cur = []; let used = 0;
+    while (i < list.length){
+      const m = Math.max(1, +list[i].minutes || cap);
+      if (cur.length === 0 || used + m <= cap){ cur.push(list[i].id); used += m; i++; if (used >= cap) break; }
+      else break;
+    }
+    slots.push(cur);
+  }
+  return {slots, left:list.slice(i).map(t => t.id)};
+}
+
+function buildPlan(L, groups, tasksFor){
+  const G = groups.length, C = Math.max(0, L.computers), R = Math.max(1, Math.floor(L.duration / L.slot));
+  const allMachine = C >= G;
+  const rounds = [], turns = {};
+  groups.forEach(g => turns[g.id] = 0);
+  let p = 0;
+  for (let r = 0; r < R; r++){
+    let chosen = [];
+    if (C > 0){ if (allMachine) chosen = groups.map((g, i) => i); else { for (let k = 0; k < C; k++) chosen.push((p + k) % G); p = (p + C) % G; } }
+    const cells = {};
+    groups.forEach((g, i) => {
+      const k = chosen.indexOf(i);
+      cells[g.id] = k >= 0 ? {mode:"may", machine:k + 1, offset:turns[g.id], taskIds:[]} : {mode:"tai-cho", offset:turns[g.id], taskIds:[]};
+      if (k >= 0) turns[g.id]++;
+    });
+    rounds.push({idx:r, start:r * L.slot, end:(r + 1) * L.slot, cells});
+  }
+  const left = {};
+  if (tasksFor) groups.forEach(g => {
+    const ts = tasksFor(g.id), may = ts.filter(t => t.type === "may"), tc = ts.filter(t => t.type !== "may");
+    const mr = rounds.filter(r => r.cells[g.id].mode === "may"), tr = rounds.filter(r => r.cells[g.id].mode !== "may");
+    const pm = pack(may, mr.length, L.slot); mr.forEach((r, k) => r.cells[g.id].taskIds = pm.slots[k]);
+    const pt = pack(tc, tr.length, L.slot); tr.forEach((r, k) => r.cells[g.id].taskIds = pt.slots[k]);
+    left[g.id] = {may:pm.left, tc:allMachine ? [] : pt.left};
+  });
+  return {R, C, G, allMachine, rounds, turns, left};
+}
+
+function roleMap(group, offset, nRoles){
+  // trả về mảng theo thành viên: danh sách chỉ số vai
+  const n = group.members.length, res = group.members.map(() => []);
+  if (!n) return res;
+  for (let k = 0; k < nRoles; k++) res[(k + offset) % n].push(k);
+  return res;
+}
+
+function planWarnings(L, groups, plan){
+  const W = [];
+  const sizes = groups.map(g => g.members.length), maxS = Math.max(...sizes), minS = Math.min(...sizes);
+  if (plan.C === 0) W.push({k:"bad", t:"Chưa có máy tính nào: mọi lượt đều là hoạt động tại chỗ. Hãy nhập số máy dùng được."});
+  if (plan.C > plan.G) W.push({k:"info", t:`Có ${plan.C} máy cho ${plan.G} nhóm: thừa ${plan.C - plan.G} máy. Có thể tăng số nhóm (nhóm nhỏ hơn) để nhiều bạn được thao tác hơn.`});
+  if (maxS > 6) W.push({k:"warn", t:`Nhóm đông (tối đa ${maxS} bạn/nhóm). Với 1 máy/nhóm, nhóm trên 6 bạn khó quan sát màn hình trong phòng chật.`});
+  if (minS < 2) W.push({k:"warn", t:"Có nhóm chỉ 1 bạn, không thể phân vai. Hãy giảm số nhóm."});
+  const tv = Object.values(plan.turns), tmax = Math.max(...tv), tmin = Math.min(...tv);
+  if (plan.C > 0 && tmax !== tmin){
+    // số lượt R' chia đều khi R' × số máy chia hết cho số nhóm
+    const fairR = []; for (let r = 1; r <= 24; r++) if ((r * plan.C) % plan.G === 0 && L.duration / r >= 3) fairR.push(r);
+    const bestR = fairR.sort((a, b) => Math.abs(a - plan.R) - Math.abs(b - plan.R))[0];
+    const fairG = []; for (let g = 2; g <= L.students; g++) if ((plan.R * plan.C) % g === 0 && g < plan.C * plan.R && L.students / g >= 2 && L.students / g <= 6) fairG.push(g);
+    const bestG = fairG.sort((a, b) => Math.abs(a - plan.G) - Math.abs(b - plan.G))[0];
+    const tips = [];
+    if (bestR) tips.push(`chia ${bestR} lượt (mỗi lượt khoảng ${Math.floor(L.duration / bestR)} phút), mỗi nhóm được ${bestR * plan.C / plan.G} lượt máy`);
+    if (bestG) tips.push(`chia ${bestG} nhóm, mỗi nhóm được ${plan.R * plan.C / bestG} lượt máy`);
+    W.push({k:"warn", t:`Số lượt máy chưa đều: có nhóm ${tmax} lượt, có nhóm ${tmin} lượt.` + (tips.length ? ` Gợi ý: ${tips.join("; hoặc ")}.` : "")});
+  }
+  if (plan.C > 0){
+    const lacking = groups.filter(g => Math.min(g.members.length, plan.turns[g.id]) < g.members.length);
+    if (lacking.length){
+      const g = lacking[0], t = plan.turns[g.id], n = g.members.length;
+      const per = t > 0 ? Math.ceil(n / t) : n, mins = t > 0 ? Math.max(1, Math.floor(L.slot / per)) : 0;
+      W.push({k:"warn", t:`${lacking.length} nhóm chưa đủ lượt để mọi bạn làm “Người thao tác chính” (ví dụ ${g.name}: ${t} lượt máy / ${n} bạn).` +
+        (t > 0 ? ` Gợi ý: trong mỗi lượt máy, đổi người cầm chuột khoảng ${mins} phút/lần để ${per} bạn cùng được thao tác.` : "")});
+    }
+  }
+  const leftMay = [];
+  groups.forEach(g => (plan.left[g.id]?.may || []).forEach(id => leftMay.push([g.name, id])));
+  if (leftMay.length){
+    const ids = [...new Set(leftMay.map(x => x[1]))], names = ids.map(id => "“" + (taskById(id)?.title || id) + "”");
+    const gs = [...new Set(leftMay.map(x => x[0]))];
+    W.push({k:"bad", t:`Không đủ thời gian máy: ${names.join(", ")} chưa xếp được vào lượt máy của ${gs.length === groups.length ? "tất cả các nhóm" : gs.join(", ")}. Gợi ý: tăng thời gian hoạt động, giảm số nhóm hoặc chuyển phần còn lại sang tiết sau.`});
+  }
+  const leftTc = new Set(); groups.forEach(g => (plan.left[g.id]?.tc || []).forEach(id => leftTc.add(id)));
+  if (leftTc.size) W.push({k:"info", t:`${leftTc.size} nhiệm vụ tại chỗ chưa có lượt riêng; dùng làm nhiệm vụ dự phòng khi nhóm xong sớm.`});
+  if (L.duration > L.period - 5) W.push({k:"warn", t:`Hoạt động nhóm ${L.duration} phút trong tiết ${L.period} phút: còn dưới 5 phút cho khởi động và tổng kết.`});
+  if (L.slot < 4) W.push({k:"warn", t:"Mỗi lượt dưới 4 phút: học sinh tiểu học khó kịp đổi chỗ thao tác và hoàn thành một bước."});
+  return W;
+}
+
+function alternatives(L){
+  const S = L.students, C = L.computers, cands = new Set();
+  if (C > 0) [C, 2 * C, 3 * C].forEach(g => cands.add(g));
+  [Math.ceil(S / 4), Math.ceil(S / 5), Math.ceil(S / 6)].forEach(g => cands.add(g));
+  const out = [];
+  [...cands].filter(g => g >= 1 && g <= S).sort((a, b) => a - b).forEach(G => {
+    const lo = Math.floor(S / G), hi = Math.ceil(S / G);
+    if (lo < 3 || hi > 6) return;
+    const groups = makeGroups({...L, groups:G}), plan = buildPlan({...L, groups:G}, groups, null);
+    const tv = Object.values(plan.turns);
+    let covered = 0; groups.forEach(g => covered += Math.min(g.members.length, plan.turns[g.id]));
+    out.push({G, size: lo === hi ? `${lo}` : `${lo}–${hi}`, tmin:Math.min(...tv), tmax:Math.max(...tv), cover:Math.round(100 * covered / S), waves: C > 0 ? Math.ceil(G / Math.min(C, G)) : 0});
+  });
+  return out;
+}
+
+/* ============ Truy vấn trạng thái ============ */
+const taskById = id => state.tasks.find(t => t.id === id);
+const tasksFor = gid => state.tasks.filter(t => (state.assign[gid] || []).includes(t.id));
+const st = (gid, tid) => state.progress[gid + "|" + tid]?.status || "chua";
+function plan(){ return buildPlan(state.lesson, state.groups, tasksFor); }
+function curRound(p){ return Math.min(Math.max(0, state.run.round - 1), p.R - 1); }
+function groupPace(g, p){
+  const cur = curRound(p), ts = tasksFor(g.id);
+  const done = ts.filter(t => st(g.id, t.id) === "xong").length;
+  const due = []; p.rounds.slice(0, cur).forEach(r => (r.cells[g.id].taskIds || []).forEach(id => due.push(id)));
+  const lag = due.filter(id => st(g.id, id) !== "xong").length;
+  if (ts.length && done === ts.length) return {k:"ok", t: cur < p.R - 1 ? "Xong sớm" : "Hoàn thành", early: cur < p.R - 1, done, total:ts.length, lag:0};
+  if (lag > 0) return {k:"bad", t:`Chậm ${lag} nhiệm vụ`, done, total:ts.length, lag};
+  return {k:"ok", t:"Đúng tiến độ", done, total:ts.length, lag:0};
+}
+
+/* ============ Ngữ cảnh gửi AI (đã ẩn danh) ============ */
+function ctxLesson(){
+  const L = state.lesson, p = plan();
+  const sizes = state.groups.map(g => g.members.length).join("-");
+  let s = `BỐI CẢNH BUỔI HỌC (dữ liệu giáo viên nhập trong ứng dụng)\n- Bài: ${L.title} – Tin học lớp ${L.grade}\n- Mục tiêu:\n${L.goals}\n` +
+    `- Sĩ số: ${L.students} học sinh; ${L.groups} nhóm (sĩ số từng nhóm: ${sizes}); số máy tính dùng được: ${L.computers}.\n` +
+    `- Tiết học ${L.period} phút; thời gian hoạt động nhóm ${L.duration} phút, chia ${p.R} lượt × ${L.slot} phút.\n` +
+    `- Cách tổ chức: mỗi nhóm dùng chung 1 máy khi đến lượt; nhóm chưa đến lượt làm nhiệm vụ tại chỗ, không rời ghế (phòng máy chật).\n` +
+    `- 4 vai trong nhóm (luân phiên sau mỗi lượt máy): ${state.roles.map(r => r.name).join("; ")}.\n`;
+  s += `\nLỊCH LUÂN PHIÊN DO ỨNG DỤNG TÍNH (quy tắc chia đều máy):\n`;
+  p.rounds.forEach(r => {
+    s += `- Lượt ${r.idx + 1} (phút ${r.start}–${r.end}): ` + state.groups.map(g => { const c = r.cells[g.id]; return `${g.name} ${c.mode === "may" ? "máy " + c.machine : "tại chỗ"}`; }).join(", ") + "\n";
+  });
+  s += `- Số lượt máy mỗi nhóm: ` + state.groups.map(g => `${g.name}: ${p.turns[g.id]}`).join(", ") + "\n";
+  const W = planWarnings(L, state.groups, p);
+  if (W.length) s += `\nCẢNH BÁO ỨNG DỤNG PHÁT HIỆN:\n` + W.map(w => "- " + w.t).join("\n") + "\n";
+  return s;
+}
+function ctxTasks(){
+  return `\nNGÂN HÀNG NHIỆM VỤ HIỆN CÓ:\n` + state.tasks.map(t => `- [${TYPES[t.type]} | ${LEVELS[t.level]} | ${t.minutes} phút] ${t.title}`).join("\n") + "\n";
+}
+function ctxProgress(){
+  const p = plan(), cur = curRound(p);
+  let s = `\nTIẾN ĐỘ HIỆN TẠI (đang ở Lượt ${cur + 1}/${p.R}):\n`;
+  state.groups.forEach(g => {
+    const pace = groupPace(g, p), c = p.rounds[cur].cells[g.id];
+    s += `- ${g.name} (${g.members.length} HS, lượt này: ${c.mode === "may" ? "máy " + c.machine : "tại chỗ"}; ${pace.done}/${pace.total} nhiệm vụ xong; ${pace.t}${state.flags[g.id] ? "; GIÁO VIÊN ĐÁNH DẤU CẦN HỖ TRỢ" : ""}):\n`;
+    tasksFor(g.id).forEach(t => s += `    · ${t.title}: ${STATUS[st(g.id, t.id)]}\n`);
+    if (state.notes[g.id]) s += `    · Nhận xét của giáo viên: ${state.notes[g.id]}\n`;
+  });
+  return s;
+}
+const AI_RULES = `\nYÊU CẦU CHUNG:\n- Bạn là trợ lý hỗ trợ giáo viên Tin học tiểu học ở Việt Nam điều phối lớp học trong phòng máy.\n- Chỉ dựa trên dữ liệu ở trên; học sinh đã được ẩn danh bằng mã nhóm. Không bịa số liệu, nếu cần giả định thì nói rõ.\n- Ngôn ngữ: tiếng Việt, ngắn gọn, dễ thực hiện ngay trong tiết học; phù hợp học sinh lớp ${"{G}"}.\n- Không dùng bảng; dùng gạch đầu dòng.`;
+const rules = () => AI_RULES.replace("{G}", state.lesson.grade);
+const TASK_JSON = `Chỉ trả lời bằng MỘT mảng JSON (không kèm chữ khác). Mỗi phần tử có dạng:\n{"title": string, "type": "may" hoặc "tai-cho", "level": "co-ban" | "van-dung" | "mo-rong", "minutes": số phút, "role": "r1"|"r2"|"r3"|"r4" (vai phụ trách chính: r1 Người thao tác chính, r2 Người đọc nhiệm vụ & dẫn dắt, r3 Người kiểm tra, r4 Người báo cáo), "steps": [các bước ngắn], "product": sản phẩm cần hoàn thành, "criteria": tiêu chí hoàn thành, "hint": gợi ý cho giáo viên}`;
+
+const AI_ACTIONS = [
+  {id:"plan", title:"Đề xuất phương án điều phối", short:"Nhận xét lịch luân phiên, xử lý cảnh báo, cách đổi vai.", tier:"default",
+   build: () => ctxLesson() + `\nNHIỆM VỤ:\nĐề xuất phương án điều phối cho buổi học trên:\n1. Nhận xét lịch luân phiên đã tính: có công bằng, có khả thi trong thời gian không.\n2. Cách xử lý từng cảnh báo (nếu có).\n3. Cách đổi vai để mọi học sinh đều được thao tác máy.\n4. Lưu ý quản lý lớp khi phòng chật, học sinh không rời ghế.\nTối đa 250 từ.` + rules()},
+  {id:"tasks", title:"Tạo nhiệm vụ phân hóa", short:"Sinh thẻ nhiệm vụ theo mức độ, thêm thẳng vào ngân hàng.", tier:"default", json:true,
+   fields:[{id:"level", label:"Mức độ", type:"select", options:LEVELS, value:"mo-rong"},
+           {id:"mode", label:"Hình thức", type:"select", options:{"may":"Thực hành trên máy","tai-cho":"Tại chỗ, không cần máy","ca-hai":"Cả hai"}, value:"ca-hai"},
+           {id:"count", label:"Số nhiệm vụ", type:"number", value:3, min:1, max:6},
+           {id:"focus", label:"Yêu cầu thêm (không bắt buộc)", type:"text", value:"", ph:"Ví dụ: dành cho nhóm còn lúng túng khi đặt tên thư mục"}],
+   build: f => ctxLesson() + ctxTasks() + `\nNHIỆM VỤ:\nTạo ${f.count} thẻ nhiệm vụ mới ở mức độ "${LEVELS[f.level]}", hình thức: ${f.mode === "may" ? "thực hành trên máy" : f.mode === "tai-cho" ? "tại chỗ, không cần máy tính" : "trộn cả máy tính và tại chỗ"}. Bám sát mục tiêu bài học, không trùng nhiệm vụ đã có. Mỗi nhiệm vụ làm được trong tối đa ${state.lesson.slot} phút, phù hợp một nhóm khoảng ${Math.round(state.lesson.students / state.lesson.groups)} học sinh với 4 vai. Nhiệm vụ tại chỗ không cần máy và không cần rời chỗ ngồi.${f.focus ? "\nYêu cầu thêm của giáo viên: " + f.focus : ""}\n\n` + TASK_JSON + rules().replace("- Không dùng bảng; dùng gạch đầu dòng.", "")},
+  {id:"waiting", title:"Hoạt động tại chỗ khi chờ máy", short:"Gợi ý việc làm có ích cho nhóm chưa đến lượt máy.", tier:"default", json:true,
+   fields:[{id:"count", label:"Số hoạt động", type:"number", value:3, min:1, max:5}],
+   build: f => { const next = state.tasks.filter(t => t.type === "may" && state.groups.some(g => (state.assign[g.id] || []).includes(t.id))).map(t => t.title);
+     return ctxLesson() + ctxTasks() + `\nNHIỆM VỤ:\nĐề xuất ${f.count} hoạt động tại chỗ (type "tai-cho") cho nhóm đang chờ đến lượt máy, mỗi hoạt động ${state.lesson.slot} phút, chỉ dùng giấy bút, thẻ, thảo luận, không rời ghế, không gây ồn. Ưu tiên hoạt động giúp nhóm chuẩn bị cho lượt máy sắp tới (${next.join("; ")}) để khi lên máy làm nhanh và đúng hơn. Không trùng nhiệm vụ đã có.\n\n` + TASK_JSON + rules().replace("- Không dùng bảng; dùng gạch đầu dòng.", ""); }},
+  {id:"hint", title:"Câu hỏi gợi mở khi học sinh gặp khó", short:"Câu hỏi dẫn dắt từ nhẹ đến rõ, không nói ngay đáp án.", tier:"quick",
+   fields:[{id:"task", label:"Nhiệm vụ nhóm đang làm", type:"task"},
+           {id:"issue", label:"Khó khăn giáo viên quan sát được", type:"text", value:"", ph:"Ví dụ: tạo thư mục LyThuyet nằm ngang hàng với TinHoc", required:true}],
+   build: f => { const t = taskById(f.task) || state.tasks[0];
+     return `Bài: ${state.lesson.title} – Tin học lớp ${state.lesson.grade}.\nNhiệm vụ nhóm đang làm: ${t.title}\nCác bước: ${t.steps.join(" | ")}\nTiêu chí hoàn thành: ${t.criteria}\nKhó khăn giáo viên quan sát được: ${f.issue}\n\nNHIỆM VỤ:\nGợi ý 3–5 câu hỏi gợi mở để giáo viên hỏi nhóm, sắp xếp từ gợi ý nhẹ đến gợi ý rõ hơn, không nói thẳng đáp án ngay. Thêm 1 câu hỏi kiểm tra lại sau khi nhóm sửa xong. Tối đa 150 từ.` + rules(); }},
+  {id:"pace", title:"Xử lý nhóm xong sớm / chậm", short:"Đọc tiến độ hiện tại, đề xuất việc cho từng nhóm.", tier:"default", usesNotes:true,
+   build: () => ctxLesson() + ctxTasks() + ctxProgress() + `\nNHIỆM VỤ:\nDựa vào tiến độ hiện tại, đề xuất xử lý cho từng nhóm xong sớm, chậm tiến độ hoặc được đánh dấu cần hỗ trợ (bỏ qua nhóm đúng tiến độ):\n- Nhóm xong sớm: chọn nhiệm vụ mở rộng phù hợp, ưu tiên nhiệm vụ đã có trong ngân hàng.\n- Nhóm chậm: cách hỗ trợ nhanh, có cần điều chỉnh lượt máy không.\nMỗi nhóm 1–3 gạch đầu dòng, tối đa 220 từ.` + rules()},
+  {id:"summary", title:"Tổng kết & gợi ý buổi sau", short:"Nhận xét cuối buổi từ dữ liệu tiến độ và nhận xét.", tier:"default", usesNotes:true,
+   build: () => ctxLesson() + ctxProgress() + `\nNHẬT KÝ BUỔI HỌC:\n` + state.log.slice(-15).map(l => `- ${hhmm(l.at)} ${l.text}`).join("\n") + `\n\nNHIỆM VỤ:\nViết nhận xét tổng kết buổi học cho giáo viên:\n1. Tóm tắt kết quả theo dữ liệu (không suy diễn ngoài dữ liệu).\n2. Mức độ tham gia: số lượt thao tác máy theo lịch, nhóm nào cần chú ý.\n3. 3–5 gợi ý điều chỉnh cụ thể cho buổi học tiếp theo (chia nhóm, thời lượng lượt, nhiệm vụ).\nTối đa 250 từ.` + rules()},
+  {id:"ask", title:"Hỏi trợ lý", short:"Câu hỏi tự do, kèm bối cảnh buổi học.", tier:"default",
+   fields:[{id:"q", label:"Câu hỏi của giáo viên", type:"textarea", value:"", ph:"Ví dụ: Nếu 1 máy bị hỏng giữa giờ thì xếp lại lượt thế nào?", required:true}],
+   build: f => ctxLesson() + ctxTasks() + `\nCÂU HỎI CỦA GIÁO VIÊN:\n${f.q}\n\nTrả lời trực tiếp, tối đa 200 từ.` + rules()}
+];
+
+/* ============ AI runtime (Claude qua claude.ai) ============ */
+const ai = {sample:null, state:"checking", downloads:null, framed:!!(window.claude && window.claude.use), ctl:null, busy:false};
+async function initAI(){
+  if (!ai.framed){ ai.state = "off"; renderMeta(); if (view === "ai") render(); return; }
+  try { ai.sample = await window.claude.use("sample"); } catch(e){ ai.sample = null; }
+  try { ai.downloads = await window.claude.use("downloads"); } catch(e){ ai.downloads = null; }
+  ai.state = ai.sample ? "ready" : "off";
+  renderMeta(); if (view === "ai") render();
+}
+const AI_ERR = {
+  not_granted:"Bạn chưa cho phép trang dùng Claude. Hãy dùng chế độ thủ công bên dưới, hoặc tải lại trang để được hỏi lại.",
+  sampling_disabled:"Tài khoản này không dùng được Claude trong trang. Hãy dùng chế độ thủ công.",
+  rate_limited:"Đã gửi quá nhiều yêu cầu hoặc hết hạn mức sử dụng. Hãy đợi một lúc rồi bấm gửi lại.",
+  session_expired:"Phiên đăng nhập claude.ai đã hết hạn. Hãy đăng nhập lại.",
+  refused:"Claude từ chối yêu cầu này. Hãy diễn đạt lại yêu cầu.",
+  invalid_json:"Câu trả lời không đúng định dạng nhiệm vụ. Bấm gửi lại để thử lần nữa.",
+  prompt_too_large:"Dữ liệu gửi đi quá dài. Hãy rút gọn nhận xét hoặc ngân hàng nhiệm vụ.",
+  empty_completion:"Claude không trả lời. Hãy rút gọn yêu cầu và gửi lại.",
+  upstream_error:"Mất kết nối tới Claude. Bấm gửi lại để thử lần nữa."
+};
+const HIDE_CODES = ["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"];
+
+/* ============ Giao diện ============ */
+const VIEWS = [
+  {id:"setup", n:"1", label:"Thiết lập buổi học"},
+  {id:"groups", n:"2", label:"Nhóm & phân vai"},
+  {id:"tasks", n:"3", label:"Ngân hàng nhiệm vụ"},
+  {id:"progress", n:"4", label:"Theo dõi tiến độ"},
+  {id:"ai", n:"AI", label:"Trợ lý AI"},
+  {id:"report", n:"5", label:"Báo cáo buổi học"},
+  {id:"guide", n:"?", label:"Hướng dẫn"}
+];
+let view = (location.hash || "").slice(1);
+if (!VIEWS.some(v => v.id === view)) view = "setup";
+let draft = null, setupErrors = {};
+let taskFilter = {type:"all", level:"all"}, editing = null;
+let groupSel = "g1";
+let aiSel = "plan", aiForm = {}, aiOut = {}, aiManual = {};
+
+function go(v){ view = v; try { history.replaceState(null, "", "#" + v); } catch(e){} render(); window.scrollTo({top:0}); }
+function toast(t){ const d = document.createElement("div"); d.className = "toast"; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 2600); }
+
+function renderMeta(){
+  const m = document.getElementById("meta"); if (!m) return;
+  const aiTxt = ai.state === "ready" ? "AI: sẵn sàng" : ai.state === "checking" ? "AI: đang kiểm tra" : "AI: chế độ thủ công";
+  m.innerHTML = (state.isDemo ? `<span class="pill demo" title="Toàn bộ số liệu hiện tại là dữ liệu minh họa, không phải số liệu thật của lớp học">Dữ liệu minh họa</span>` : "") +
+    `<span class="pill ${ai.state === "ready" ? "ai-ready" : ai.state === "off" ? "ai-off" : ""}"><span class="dot"></span>${aiTxt}</span>` +
+    `<span class="pill" title="Dữ liệu chỉ lưu trong trình duyệt của máy này"><span class="dot" style="background:${saveOk ? "var(--ok)" : "var(--bad)"}"></span>${saveOk ? "Đã lưu trên máy này" : "Không lưu được – hãy sao lưu .json"}</span>`;
+}
+function renderNav(){
+  document.getElementById("nav").innerHTML = VIEWS.map((v, i) =>
+    (v.id === "guide" ? `<div class="sep"></div>` : "") +
+    `<button data-go="${v.id}" ${view === v.id ? 'aria-current="page"' : ""}><span class="n ${v.id === "ai" ? "ai-n" : ""}">${v.n}</span>${esc(v.label)}</button>`).join("");
+}
+function render(){
+  renderMeta(); renderNav();
+  const M = document.getElementById("main");
+  M.innerHTML = ({setup:vSetup, groups:vGroups, tasks:vTasks, progress:vProgress, ai:vAI, report:vReport, guide:vGuide}[view])();
+  if (view === "progress") tick();
+}
+function head(eyebrow, title, desc, right){
+  return `<div class="view-head"><div class="grow"><span class="eyebrow">${eyebrow}</span><h2>${title}</h2>${desc ? `<p>${desc}</p>` : ""}</div>${right || ""}</div>`;
+}
+const notices = W => W.length ? `<div class="notice-list">${W.map(w => `<div class="notice ${w.k}"><span>${esc(w.t)}</span></div>`).join("")}</div>` : `<div class="notice ok"><span>Không có cảnh báo: lịch luân phiên chia đều và đủ thời gian.</span></div>`;
+
+/* ---- 1. Thiết lập ---- */
+function vSetup(){
+  if (!draft) draft = clone(state.lesson);
+  const e = setupErrors, f = (id, label, type, help, extra = "") => `
+    <div class="field ${type === "textarea" ? "full" : ""}"><label for="f-${id}">${label}</label>
+    ${type === "textarea" ? `<textarea id="f-${id}" data-draft="${id}" rows="3" class="${e[id] ? "invalid" : ""}">${esc(draft[id])}</textarea>`
+      : type === "grade" ? `<select id="f-${id}" data-draft="${id}">${["3","4","5"].map(g => `<option value="${g}" ${draft[id] == g ? "selected" : ""}>Lớp ${g}</option>`).join("")}</select>`
+      : `<input id="f-${id}" data-draft="${id}" type="${type}" value="${esc(draft[id])}" class="${e[id] ? "invalid" : ""}" ${extra}>`}
+    ${e[id] ? `<span class="err">${esc(e[id])}</span>` : help ? `<span class="help">${help}</span>` : ""}</div>`;
+  return head("Bước 1", "Thiết lập buổi học", "Nhập điều kiện thực tế của lớp. Ứng dụng không tự giả định sĩ số hay số máy: mọi con số dưới đây do giáo viên nhập.") +
+  `<div class="grid2">
+    <section class="panel"><div class="panel-title"><h3>Thông tin buổi học</h3></div>
+      <div class="fields">
+        ${f("title", "Tên bài học", "text", "", 'maxlength="120"')}
+        ${f("grade", "Khối lớp", "grade")}
+        ${f("goals", "Mục tiêu học tập", "textarea", "Mỗi mục tiêu một dòng. Trợ lý AI dùng mục tiêu này khi tạo nhiệm vụ.")}
+        ${f("students", "Sĩ số lớp", "number", "", 'min="2" max="60"')}
+        ${f("groups", "Số nhóm", "number", "", 'min="1"')}
+        ${f("computers", "Số máy tính dùng được", "number", "Chỉ tính máy đang hoạt động.", 'min="0"')}
+        ${f("period", "Thời lượng tiết học (phút)", "number", "", 'min="20" max="120"')}
+        ${f("duration", "Thời gian hoạt động nhóm (phút)", "number", "Phần thời gian dành cho luân phiên.", 'min="4"')}
+        ${f("slot", "Thời lượng mỗi lượt (phút)", "number", "Sau mỗi lượt, nhóm đổi máy và đổi vai.", 'min="2"')}
+      </div>
+      <div class="row"><button class="btn primary" data-act="apply-setup">Áp dụng phương án</button>
+        <button class="btn" data-act="reset-draft">Hoàn tác thay đổi</button></div>
+      <p class="small muted">Áp dụng sẽ chia lại nhóm. Nếu số nhóm thay đổi, tiến độ đã ghi sẽ được xóa.</p>
+    </section>
+    <section class="panel" id="setup-preview">${setupPreview()}</section>
+  </div>`;
+}
+function setupPreview(){
+  const e = validateLesson(draft);
+  if (Object.keys(e).length) return `<div class="panel-title"><h3>Gợi ý phương án tổ chức</h3><span class="chip">Tính theo quy tắc</span></div><div class="notice bad"><span>Hãy sửa các ô đang báo lỗi để xem phương án.</span></div>`;
+  const L = numLesson(draft), groups = makeGroups(L), p = buildPlan(L, groups, null);
+  const W = planWarnings(L, groups, p).filter(w => !/chưa xếp được|nhiệm vụ tại chỗ chưa có lượt/.test(w.t));
+  const tv = Object.values(p.turns);
+  let covered = 0; groups.forEach(g => covered += Math.min(g.members.length, p.turns[g.id]));
+  const alts = alternatives(L);
+  return `<div class="panel-title"><h3>Gợi ý phương án tổ chức</h3><span class="chip">Tính theo quy tắc, không dùng AI</span></div>
+    <div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+      <div class="stat"><span class="v">${p.R} lượt</span><span class="k">mỗi lượt ${L.slot} phút</span></div>
+      <div class="stat"><span class="v">${L.computers >= L.groups ? "Cả lớp" : Math.ceil(L.groups / Math.max(1, L.computers)) + " đợt"}</span><span class="k">${L.computers >= L.groups ? "mọi nhóm có máy cùng lúc" : "các nhóm luân phiên dùng " + L.computers + " máy"}</span></div>
+      <div class="stat"><span class="v">${Math.min(...tv) === Math.max(...tv) ? tv[0] : Math.min(...tv) + "–" + Math.max(...tv)}</span><span class="k">lượt máy mỗi nhóm</span></div>
+      <div class="stat"><span class="v">${covered}/${L.students}</span><span class="k">học sinh được làm “Người thao tác chính” theo lịch</span></div>
+    </div>
+    ${notices(W)}
+    ${alts.length ? `<div class="stack"><b>Các cách chia nhóm khác với ${L.computers} máy</b>
+    <div class="tbl-wrap"><table><thead><tr><th>Số nhóm</th><th>HS/nhóm</th><th>Lượt máy/nhóm</th><th>Được thao tác</th><th></th></tr></thead><tbody>
+      ${alts.map(a => `<tr><td class="num">${a.G}${a.G === L.groups ? " <span class='chip may'>đang chọn</span>" : ""}</td><td class="num">${a.size}</td><td class="num">${a.tmin === a.tmax ? a.tmin : a.tmin + "–" + a.tmax}</td><td class="num">${a.cover}%</td><td>${a.G === L.groups ? "" : `<button class="btn sm" data-act="use-alt" data-g="${a.G}">Dùng</button>`}</td></tr>`).join("")}
+    </tbody></table></div><p class="small muted">Chỉ liệt kê cách chia 3–6 bạn/nhóm. “Được thao tác” là tỉ lệ học sinh có ít nhất một lượt làm Người thao tác chính theo lịch.</p></div>` : ""}`;
+}
+
+/* ---- 2. Nhóm & vai ---- */
+function vGroups(){
+  const p = plan(), W = planWarnings(state.lesson, state.groups, p);
+  if (!state.groups.some(g => g.id === groupSel)) groupSel = state.groups[0].id;
+  const g = state.groups.find(x => x.id === groupSel), n = state.roles.length;
+  return head("Bước 2", "Nhóm, phân vai và lịch luân phiên", `${state.groups.length} nhóm · ${state.lesson.computers} máy · ${p.R} lượt × ${state.lesson.slot} phút. Vai trò đổi sau mỗi lượt máy để các bạn lần lượt được thao tác.`) +
+  `<section class="panel"><div class="panel-title"><h3>Bốn vai trong nhóm</h3><span class="chip">Theo thẻ phân vai của giáo viên</span></div>
+    <div class="role-cards">${state.roles.map((r, i) => `<div class="role-card"><h4><span class="rtag r${i + 1}">${r.abbr}</span>${esc(r.name)}</h4><span>${esc(r.duty)}</span><span class="muted"><b>Quy tắc:</b> ${esc(r.rule)}</span></div>`).join("")}</div>
+    <p class="small muted">Nhóm nhiều hơn 4 bạn: các bạn chưa nhận vai ở lượt đó là <span class="rtag rx">HT</span> ${SUPPORT.name.toLowerCase()} và sẽ nhận vai ở lượt sau.</p>
+  </section>
+  ${notices(W)}
+  <section class="panel"><div class="panel-title"><h3>Lịch luân phiên</h3><span class="chip">Tính theo quy tắc chia đều máy</span></div>
+    <div class="tbl-wrap"><table class="sched"><thead><tr><th>Lượt</th>${state.groups.map(g => `<th>${esc(g.name)} <span class="muted num">(${g.members.length})</span></th>`).join("")}</tr></thead><tbody>
+    ${p.rounds.map(r => `<tr><td class="rh">Lượt ${r.idx + 1}<div class="small muted num">phút ${r.start}–${r.end}</div></td>${state.groups.map(g => {
+      const c = r.cells[g.id], rm = roleMap(g, c.offset, n), op = rm.findIndex(x => x.includes(0));
+      return `<td><div class="cell">${c.mode === "may" ? `<span class="chip may">Máy ${c.machine}</span>` : `<span class="chip tc">Tại chỗ</span>`}
+        ${c.mode === "may" && op >= 0 ? `<span class="op"><span class="rtag r1">TT</span> ${esc(g.members[op].label)}</span>` : ""}
+        <span class="t">${(c.taskIds || []).map(id => esc(taskById(id)?.title || "")).join("<br>") || (c.mode === "may" ? "Hoàn thiện / nhiệm vụ mở rộng" : "Nhiệm vụ dự phòng")}</span></div></td>`;
+    }).join("")}</tr>`).join("")}
+    </tbody></table></div>
+  </section>
+  <section class="panel"><div class="panel-title"><h3>Vai của từng bạn qua các lượt</h3>
+      <div class="filters">${state.groups.map(x => `<button class="btn sm ${x.id === groupSel ? "primary" : ""}" data-act="sel-group" data-g="${x.id}">${esc(x.name)}</button>`).join("")}</div></div>
+    <div class="tbl-wrap"><table class="roles-mx"><thead><tr><th>Bạn (mã)</th>${p.rounds.map(r => `<th class="c">Lượt ${r.idx + 1}<br><span class="chip ${r.cells[g.id].mode === "may" ? "may" : "tc"}">${r.cells[g.id].mode === "may" ? "Máy" : "Tại chỗ"}</span></th>`).join("")}<th class="c">Lượt TT</th></tr></thead><tbody>
+    ${g.members.map((m, mi) => { let tt = 0;
+      const cells = p.rounds.map(r => { const c = r.cells[g.id], rs = roleMap(g, c.offset, n)[mi]; if (c.mode === "may" && rs.includes(0)) tt++;
+        return `<td>${rs.length ? rs.map(k => `<span class="rtag r${k + 1}">${state.roles[k].abbr}</span>`).join("") : `<span class="rtag rx">HT</span>`}</td>`; }).join("");
+      return `<tr><td class="lbl"><input type="text" id="m-${m.code}" data-member="${g.id}|${mi}" value="${esc(m.label)}" aria-label="Tên hiển thị của ${m.code}" maxlength="24"></td>${cells}<td class="c num">${tt}</td></tr>`; }).join("")}
+    </tbody></table></div>
+    <p class="small muted">Có thể đổi mã (ví dụ thành tên viết tắt) để dễ gọi trên lớp. Tên hiển thị chỉ lưu trên máy này và <b>không bao giờ được gửi cho AI</b>; khi gửi AI, ứng dụng chỉ dùng tên nhóm và số lượng.</p>
+  </section>`;
+}
+
+/* ---- 3. Nhiệm vụ ---- */
+function taskCard(t){
+  const role = state.roles.find(r => r.id === t.role);
+  return `<article class="task ${t.type === "may" ? "is-may" : "is-tc"}">
+    <div class="row"><span class="chip ${t.type === "may" ? "may" : "tc"}">${TYPES[t.type]}</span><span class="chip lv-${t.level}">${LEVELS[t.level]}</span><span class="chip num">${t.minutes} phút</span>${t.ai ? `<span class="chip ai">AI tạo</span>` : ""}</div>
+    <h4>${esc(t.title)}</h4>
+    ${t.steps.length ? `<ol>${t.steps.map(s => `<li>${esc(s)}</li>`).join("")}</ol>` : ""}
+    ${t.product ? `<div class="kv"><b>Sản phẩm:</b> ${esc(t.product)}</div>` : ""}
+    ${t.criteria ? `<div class="kv"><b>Tiêu chí hoàn thành:</b> ${esc(t.criteria)}</div>` : ""}
+    ${role ? `<div class="kv"><b>Vai phụ trách chính:</b> ${esc(role.name)}</div>` : ""}
+    ${t.hint ? `<div class="hint"><b>Dành cho giáo viên:</b> ${esc(t.hint)}</div>` : ""}
+    <div class="row" style="justify-content:space-between"><span class="src">Nguồn: ${esc(t.source || "Giáo viên bổ sung")}</span>
+      <span class="row"><button class="btn sm" data-act="edit-task" data-id="${t.id}">Sửa</button><button class="btn sm danger" data-act="del-task" data-id="${t.id}">Xóa</button></span></div>
+  </article>`;
+}
+function taskEditor(){
+  const t = editing, e = editing._err || {};
+  return `<section class="panel" id="editor"><div class="panel-title"><h3>${t._new ? "Thêm nhiệm vụ" : "Sửa nhiệm vụ"}</h3></div>
+    <div class="fields">
+      <div class="field full"><label for="e-title">Tên nhiệm vụ</label><input id="e-title" type="text" data-edit="title" value="${esc(t.title)}" class="${e.title ? "invalid" : ""}">${e.title ? `<span class="err">${e.title}</span>` : ""}</div>
+      <div class="field"><label for="e-type">Hình thức</label><select id="e-type" data-edit="type">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}" ${t.type === k ? "selected" : ""}>${v}</option>`).join("")}</select></div>
+      <div class="field"><label for="e-level">Mức độ</label><select id="e-level" data-edit="level">${Object.entries(LEVELS).map(([k, v]) => `<option value="${k}" ${t.level === k ? "selected" : ""}>${v}</option>`).join("")}</select></div>
+      <div class="field"><label for="e-minutes">Thời gian (phút)</label><input id="e-minutes" type="number" min="1" max="45" data-edit="minutes" value="${esc(t.minutes)}" class="${e.minutes ? "invalid" : ""}">${e.minutes ? `<span class="err">${e.minutes}</span>` : ""}</div>
+      <div class="field"><label for="e-role">Vai phụ trách chính</label><select id="e-role" data-edit="role"><option value="">Cả nhóm</option>${state.roles.map(r => `<option value="${r.id}" ${t.role === r.id ? "selected" : ""}>${esc(r.name)}</option>`).join("")}</select></div>
+      <div class="field full"><label for="e-steps">Các bước thực hiện</label><textarea id="e-steps" data-edit="stepsText" rows="4" class="${e.steps ? "invalid" : ""}">${esc(t.stepsText)}</textarea><span class="${e.steps ? "err" : "help"}">${e.steps || "Mỗi bước một dòng."}</span></div>
+      <div class="field full"><label for="e-product">Sản phẩm cần hoàn thành</label><input id="e-product" type="text" data-edit="product" value="${esc(t.product)}"></div>
+      <div class="field full"><label for="e-criteria">Tiêu chí hoàn thành</label><input id="e-criteria" type="text" data-edit="criteria" value="${esc(t.criteria)}"></div>
+      <div class="field full"><label for="e-hint">Gợi ý cho giáo viên</label><input id="e-hint" type="text" data-edit="hint" value="${esc(t.hint)}"></div>
+      <div class="field full"><label for="e-source">Nguồn</label><input id="e-source" type="text" data-edit="source" value="${esc(t.source)}"></div>
+    </div>
+    <div class="row"><button class="btn primary" data-act="save-task">Lưu nhiệm vụ</button><button class="btn" data-act="cancel-task">Hủy</button></div></section>`;
+}
+function vTasks(){
+  const list = state.tasks.filter(t => (taskFilter.type === "all" || t.type === taskFilter.type) && (taskFilter.level === "all" || t.level === taskFilter.level));
+  const seg = (key, opts) => `<div class="seg">${Object.entries(opts).map(([k, v]) => `<button data-act="filter" data-k="${key}" data-v="${k}" aria-pressed="${taskFilter[key] === k}">${v}</button>`).join("")}</div>`;
+  return head("Bước 3", "Ngân hàng nhiệm vụ", "Nạp sẵn từ phiếu thực hành, câu hỏi thảo luận của giáo viên và SGK Tin học 5 Bài 4. Thứ tự trong bảng giao việc là thứ tự nhóm thực hiện.",
+    `<button class="btn primary" data-act="new-task">Thêm nhiệm vụ</button>`) +
+  (editing ? taskEditor() : "") +
+  `<section class="panel"><div class="panel-title"><h3>Giao nhiệm vụ cho nhóm</h3><span class="chip">${state.tasks.length} nhiệm vụ</span></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Thứ tự</th><th>Nhiệm vụ</th>${state.groups.map(g => `<th class="c">${esc(g.name)}</th>`).join("")}<th class="c">Tất cả</th></tr></thead><tbody>
+    ${state.tasks.map((t, i) => { const all = state.groups.every(g => (state.assign[g.id] || []).includes(t.id));
+      return `<tr><td class="num" style="white-space:nowrap"><button class="btn sm" data-act="mv" data-id="${t.id}" data-d="-1" ${i === 0 ? "disabled" : ""} aria-label="Lên">↑</button> <button class="btn sm" data-act="mv" data-id="${t.id}" data-d="1" ${i === state.tasks.length - 1 ? "disabled" : ""} aria-label="Xuống">↓</button></td>
+      <td><span class="chip ${t.type === "may" ? "may" : "tc"}">${TYPES[t.type]}</span> <span class="chip lv-${t.level}">${LEVELS[t.level]}</span><br>${esc(t.title)}</td>
+      ${state.groups.map(g => `<td class="c"><input type="checkbox" id="as-${g.id}-${t.id}" data-assign="${g.id}|${t.id}" ${(state.assign[g.id] || []).includes(t.id) ? "checked" : ""} aria-label="Giao cho ${esc(g.name)}"></td>`).join("")}
+      <td class="c"><input type="checkbox" id="asall-${t.id}" data-assignall="${t.id}" ${all ? "checked" : ""} aria-label="Giao cho tất cả"></td></tr>`; }).join("")}
+    </tbody></table></div></section>
+  <div class="row" style="justify-content:space-between"><div class="filters">${seg("type", {all:"Tất cả", may:"Máy tính", "tai-cho":"Tại chỗ"})} ${seg("level", {all:"Mọi mức độ", ...LEVELS})}</div>
+    <button class="btn" data-go="ai" data-preset="tasks">Nhờ AI tạo nhiệm vụ phân hóa</button></div>
+  ${list.length ? `<div class="tasks">${list.map(taskCard).join("")}</div>` : `<div class="panel flat"><p>Không có nhiệm vụ nào khớp bộ lọc.</p></div>`}`;
+}
+
+/* ---- 4. Tiến độ ---- */
+function vProgress(){
+  const p = plan(), cur = curRound(p);
+  let total = 0, done = 0;
+  state.groups.forEach(g => tasksFor(g.id).forEach(t => { total++; if (st(g.id, t.id) === "xong") done++; }));
+  const pct = total ? Math.round(100 * done / total) : 0;
+  return head("Bước 4", "Theo dõi tiến độ", "Bấm trạng thái của từng nhiệm vụ khi đi quan sát các nhóm. Ứng dụng tự so với lịch để báo nhóm chậm hoặc xong sớm.") +
+  `<section class="panel"><div class="runbar">
+      <div class="stack" style="gap:2px"><span class="small muted">Lượt hiện tại</span>
+        <select id="run-round" data-act-change="round" aria-label="Lượt hiện tại">${p.rounds.map(r => `<option value="${r.idx + 1}" ${r.idx === cur ? "selected" : ""}>Lượt ${r.idx + 1} · phút ${r.start}–${r.end}</option>`).join("")}</select></div>
+      <div class="timer" id="timer">--:--</div>
+      <div class="row"><button class="btn primary" data-act="timer-toggle" id="timer-btn">${state.run.running ? "Tạm dừng" : "Bắt đầu lượt"}</button>
+        <button class="btn" data-act="timer-reset">Đặt lại giờ</button>
+        <button class="btn" data-act="next-round" ${cur >= p.R - 1 ? "disabled" : ""}>Sang lượt tiếp</button></div>
+      <div class="stack" style="flex:1 1 220px;gap:4px"><span class="small"><b class="num">${done}/${total}</b> nhiệm vụ hoàn thành (${pct}%)</span><div class="bar"><span style="width:${pct}%"></span></div></div>
+    </div><div id="timer-note"></div></section>
+  <div class="notice warn"><span>Nhận xét có thể được gửi cho trợ lý AI khi giáo viên bấm “Xử lý nhóm xong sớm / chậm” hoặc “Tổng kết”. <b>Không ghi họ tên học sinh</b> vào ô nhận xét.</span></div>
+  <div class="gcards">${state.groups.map(g => {
+    const c = p.rounds[cur].cells[g.id], pace = groupPace(g, p), rm = roleMap(g, c.offset, state.roles.length), op = rm.findIndex(x => x.includes(0));
+    return `<article class="gcard ${state.flags[g.id] ? "flag" : ""}"><header><h3>${esc(g.name)}</h3>
+      ${c.mode === "may" ? `<span class="chip may">Máy ${c.machine}</span>` : `<span class="chip tc">Tại chỗ</span>`}
+      <span class="chip ${pace.k === "bad" ? "bad" : pace.early ? "warn" : "ok"}">${pace.t}</span></header>
+      <div class="small muted">${pace.done}/${pace.total} nhiệm vụ · ${c.mode === "may" && op >= 0 ? `Người thao tác: <b>${esc(g.members[op].label)}</b>` : "Lượt này làm nhiệm vụ tại chỗ"}</div>
+      ${tasksFor(g.id).map(t => { const s = st(g.id, t.id), now = (c.taskIds || []).includes(t.id);
+        return `<div class="trow"><div class="tt">${now ? `<span class="chip ${t.type === "may" ? "may" : "tc"}">Lượt này</span>` : ""}${esc(t.title)}</div>
+        <div class="seg status" role="group" aria-label="Trạng thái">${Object.entries(STATUS).map(([k, v]) => `<button data-act="status" data-g="${g.id}" data-t="${t.id}" data-v="${k}" aria-pressed="${s === k}">${v}</button>`).join("")}</div></div>`; }).join("") || `<p class="small muted">Chưa giao nhiệm vụ.</p>`}
+      <label class="small" for="note-${g.id}"><b>Nhận xét của giáo viên</b></label>
+      <textarea id="note-${g.id}" data-note="${g.id}" placeholder="Quan sát nhanh về nhóm (không ghi họ tên)">${esc(state.notes[g.id] || "")}</textarea>
+      <div class="row"><button class="btn sm ${state.flags[g.id] ? "danger" : ""}" data-act="flag" data-g="${g.id}">${state.flags[g.id] ? "Bỏ đánh dấu cần hỗ trợ" : "Đánh dấu cần hỗ trợ"}</button></div>
+    </article>`; }).join("")}</div>
+  <div class="row"><button class="btn ai" data-go="ai" data-preset="pace">Hỏi AI cách xử lý nhóm xong sớm / chậm</button></div>`;
+}
+let timerInt = null;
+function remaining(){
+  const r = state.run;
+  if (r.running && r.endAt) return Math.round((r.endAt - Date.now()) / 1000);
+  return r.remaining ?? state.lesson.slot * 60;
+}
+function tick(){
+  const el = document.getElementById("timer"); if (!el) return;
+  const s = remaining(), a = Math.abs(s);
+  el.textContent = (s < 0 ? "-" : "") + pad(Math.floor(a / 60)) + ":" + pad(a % 60);
+  el.classList.toggle("over", s <= 0);
+  const n = document.getElementById("timer-note");
+  if (n) n.innerHTML = s <= 0 && state.run.running ? `<div class="notice bad"><span>Hết giờ lượt này: nhắc các nhóm lưu kết quả, đổi máy và đổi vai, rồi bấm “Sang lượt tiếp”.</span></div>` : "";
+}
+function startTimerLoop(){ if (!timerInt) timerInt = setInterval(() => { if (view === "progress") tick(); }, 500); }
+
+/* ---- AI ---- */
+function vAI(){
+  const A = AI_ACTIONS.find(a => a.id === aiSel) || AI_ACTIONS[0];
+  const F = aiForm[A.id] || (aiForm[A.id] = Object.fromEntries((A.fields || []).map(f => [f.id, f.type === "task" ? state.tasks[0]?.id : f.value])));
+  let prompt = "", perr = "";
+  try { prompt = A.build(F); } catch(e){ perr = "Không tạo được dữ liệu gửi AI: " + e.message; }
+  const out = aiOut[A.id], ready = ai.state === "ready";
+  const fieldHtml = (A.fields || []).map(f => {
+    const v = F[f.id] ?? "";
+    let input;
+    if (f.type === "select") input = `<select id="ai-${A.id}-${f.id}" data-aif="${f.id}">${Object.entries(f.options).map(([k, l]) => `<option value="${k}" ${v === k ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
+    else if (f.type === "task") input = `<select id="ai-${A.id}-${f.id}" data-aif="${f.id}">${state.tasks.map(t => `<option value="${t.id}" ${v === t.id ? "selected" : ""}>${esc(t.title)}</option>`).join("")}</select>`;
+    else if (f.type === "textarea") input = `<textarea id="ai-${A.id}-${f.id}" data-aif="${f.id}" rows="3" placeholder="${esc(f.ph || "")}">${esc(v)}</textarea>`;
+    else input = `<input id="ai-${A.id}-${f.id}" data-aif="${f.id}" type="${f.type}" value="${esc(v)}" placeholder="${esc(f.ph || "")}" ${f.min ? `min="${f.min}" max="${f.max}"` : ""}>`;
+    return `<div class="field ${f.type === "textarea" || f.type === "text" ? "full" : ""}"><label for="ai-${A.id}-${f.id}">${esc(f.label)}</label>${input}</div>`;
+  }).join("");
+  return head("Trợ lý AI", "Trợ lý AI cho giáo viên", "AI tạo sinh (Claude) đọc dữ liệu buổi học đã ẩn danh và đề xuất. Giáo viên luôn là người quyết định: mọi gợi ý chỉ được dùng khi giáo viên bấm lưu hoặc thêm vào ngân hàng nhiệm vụ.") +
+  (ready ? `<div class="notice ai"><span><b>Chế độ tự động:</b> yêu cầu được gửi tới Claude qua tài khoản claude.ai của người đang mở trang. Lần đầu sẽ có hộp thoại xin phép. Trang không chứa API key.</span></div>`
+   : ai.state === "checking" ? `<div class="notice info"><span>Đang kiểm tra kết nối AI…</span></div>`
+   : `<div class="notice warn"><span><b>Chế độ thủ công:</b> trang này không gọi được AI (mở ngoài claude.ai, chưa đăng nhập hoặc chưa cho phép). Bấm “Sao chép yêu cầu”, dán vào một trợ lý AI bên ngoài, rồi dán câu trả lời vào ô bên dưới. Phần gửi và nhận do giáo viên tự làm bên ngoài ứng dụng.</span></div>`) +
+  `<div class="ai-layout"><div class="ai-list">${AI_ACTIONS.map(a => `<button class="ai-item" data-act="ai-sel" data-id="${a.id}" aria-current="${a.id === A.id}"><b>${esc(a.title)}</b><span>${esc(a.short)}</span></button>`).join("")}</div>
+  <section class="panel"><div class="panel-title"><h3>${esc(A.title)}</h3>${A.json ? `<span class="chip ai">Kết quả: thẻ nhiệm vụ</span>` : ""}</div>
+    ${fieldHtml ? `<div class="fields">${fieldHtml}</div>` : ""}
+    ${A.usesNotes ? `<div class="notice info"><span>Gửi kèm: tiến độ từng nhóm và nhận xét của giáo viên (không có tên học sinh).</span></div>` : ""}
+    ${perr ? `<div class="notice bad"><span>${esc(perr)}</span></div>` : `<details class="prompt"><summary>Xem chính xác dữ liệu gửi cho AI (${prompt.length.toLocaleString("vi-VN")} ký tự)</summary><pre id="ai-prompt">${esc(prompt)}</pre></details>`}
+    <div class="row">
+      ${ready ? `<button class="btn ai" data-act="ai-run" ${ai.busy ? "disabled" : ""}>${out?.text ? "Gửi lại cho AI" : "Gửi cho AI"}</button>` : ""}
+      ${ai.busy ? `<button class="btn" data-act="ai-stop">Dừng</button>` : ""}
+      <button class="btn" data-act="ai-copy">Sao chép yêu cầu</button>
+    </div>
+    <div id="ai-result">${aiResultHtml(A)}</div>
+    ${!ready ? `<div class="field"><label for="ai-manual">Dán câu trả lời từ AI bên ngoài</label><textarea id="ai-manual" data-manual="${A.id}" rows="5" placeholder="Dán câu trả lời vào đây">${esc(aiManual[A.id] || "")}</textarea>
+      <div class="row"><button class="btn" data-act="ai-manual-use">Dùng câu trả lời đã dán</button></div></div>` : ""}
+  </section></div>
+  ${state.aiLog.length ? `<section class="panel"><div class="panel-title"><h3>Gợi ý đã lưu vào báo cáo</h3><span class="chip">${state.aiLog.length}</span></div>${state.aiLog.slice().reverse().map(savedHtml).join("")}</section>` : ""}`;
+}
+function savedHtml(x){
+  return `<div class="saved"><div class="row"><b>${esc(x.title)}</b><span class="chip ${x.mode === "tu-dong" ? "ai" : "warn"}">${x.mode === "tu-dong" ? "AI tự động" : "Thủ công: dán từ AI bên ngoài"}</span><span class="small muted num">${hhmm(x.at)}</span></div><div class="ai-out" style="background:transparent;border:0;padding:0;min-height:0">${md(x.output)}</div></div>`;
+}
+function aiResultHtml(A){
+  const out = aiOut[A.id];
+  if (!out) return `<div class="ai-out muted">Kết quả sẽ hiện ở đây.</div>`;
+  if (out.thinking && !out.text) return `<div class="ai-out thinking">AI đang suy nghĩ… (thường mất 10–60 giây)</div>`;
+  let h = "";
+  if (out.error) h += `<div class="notice bad"><span>${esc(out.error)}</span></div>`;
+  if (A.json && out.tasks){
+    h += `<div class="stack">${out.tasks.map((t, i) => `<label class="gen-task"><input type="checkbox" id="gen-${i}" data-gen="${i}" ${t._pick !== false ? "checked" : ""}><div class="stack" style="gap:4px"><div class="row"><span class="chip ${t.type === "may" ? "may" : "tc"}">${TYPES[t.type]}</span><span class="chip lv-${t.level}">${LEVELS[t.level]}</span><span class="chip num">${t.minutes} phút</span></div><b>${esc(t.title)}</b><ol style="margin:0;padding-left:20px;font-size:.88rem">${t.steps.map(s => `<li>${esc(s)}</li>`).join("")}</ol><span class="small"><b>Tiêu chí:</b> ${esc(t.criteria)}</span></div></label>`).join("")}</div>
+      <div class="row"><button class="btn primary" data-act="ai-add-tasks" ${out.added ? "disabled" : ""}>${out.added ? "Đã thêm vào ngân hàng" : "Thêm nhiệm vụ đã chọn vào ngân hàng"}</button></div>`;
+  } else if (out.text){
+    h += `<div class="ai-out">${md(out.text)}</div>`;
+    if (!out.thinking) h += `<div class="row">${out.truncated ? `<span class="chip warn">Câu trả lời bị cắt ngắn</span>` : ""}<button class="btn" data-act="ai-save" ${out.saved ? "disabled" : ""}>${out.saved ? "Đã lưu vào báo cáo" : "Lưu vào báo cáo"}</button><span class="small muted">${out.mode === "tu-dong" ? "Tạo tự động bởi Claude" : "Dán thủ công từ AI bên ngoài"}</span></div>`;
+  }
+  return h;
+}
+function md(text){
+  const lines = esc(text).split(/\r?\n/), out = []; let list = null;
+  const inl = s => s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/`([^`]+)`/g, "<code>$1</code>");
+  const close = () => { if (list){ out.push(list === "ul" ? "</ul>" : "</ol>"); list = null; } };
+  for (const raw of lines){
+    const l = raw.trimEnd(); let m;
+    if ((m = l.match(/^\s*[-*•·]\s+(.*)/))){ if (list !== "ul"){ close(); out.push("<ul>"); list = "ul"; } out.push("<li>" + inl(m[1]) + "</li>"); continue; }
+    if ((m = l.match(/^\s*(\d+)[.)]\s+(.*)/))){ if (list !== "ol"){ close(); out.push("<ol>"); list = "ol"; } out.push("<li>" + inl(m[2]) + "</li>"); continue; }
+    close();
+    if ((m = l.match(/^#{1,6}\s+(.*)/))) out.push("<h4>" + inl(m[1]) + "</h4>");
+    else if (l.trim()) out.push("<p>" + inl(l) + "</p>");
+  }
+  close(); return out.join("");
+}
+function normTasks(arr){
+  if (!Array.isArray(arr)) throw new Error("Không phải danh sách");
+  const res = arr.filter(x => x && typeof x === "object" && x.title).slice(0, 8).map(x => ({
+    id:uid("t-ai"), ai:true, title:String(x.title).slice(0, 160),
+    type: x.type === "may" ? "may" : "tai-cho", level: LEVELS[x.level] ? x.level : "van-dung",
+    minutes: Math.min(45, Math.max(1, Math.round(+x.minutes) || state.lesson.slot)),
+    role: ["r1","r2","r3","r4"].includes(x.role) ? x.role : "",
+    steps: (Array.isArray(x.steps) ? x.steps : [x.steps]).filter(Boolean).map(s => String(s).slice(0, 400)).slice(0, 8),
+    product:String(x.product || ""), criteria:String(x.criteria || ""), hint:String(x.hint || ""), source:"Trợ lý AI (Claude) – giáo viên đã duyệt"}));
+  if (!res.length) throw new Error("Không có nhiệm vụ hợp lệ");
+  return res;
+}
+function parseLooseJSON(text){
+  try { return JSON.parse(text); } catch(e){}
+  const f = text.match(/```(?:json)?\s*([\s\S]*?)```/); if (f){ try { return JSON.parse(f[1]); } catch(e){} }
+  const a = text.indexOf("["), b = text.lastIndexOf("]"); if (a >= 0 && b > a) return JSON.parse(text.slice(a, b + 1));
+  throw new Error("no json");
+}
+function refreshAIResult(){ const A = AI_ACTIONS.find(a => a.id === aiSel); const el = document.getElementById("ai-result"); if (el) el.innerHTML = aiResultHtml(A); }
+async function runAI(){
+  const A = AI_ACTIONS.find(a => a.id === aiSel), F = aiForm[A.id] || {};
+  const miss = (A.fields || []).find(f => f.required && !String(F[f.id] || "").trim());
+  if (miss){ toast(`Hãy nhập “${miss.label}” trước khi gửi.`); document.getElementById(`ai-${A.id}-${miss.id}`)?.focus(); return; }
+  if (A.fields?.some(f => f.id === "count")) F.count = Math.min(6, Math.max(1, Math.round(+F.count) || 3));
+  const prompt = A.build(F);
+  ai.ctl = new AbortController(); ai.busy = true;
+  aiOut[A.id] = {thinking:true, text:"", mode:"tu-dong"};
+  render();
+  try {
+    if (A.json){
+      const data = await ai.sample.json(prompt, {signal:ai.ctl.signal, modelTier:A.tier, cache:false});
+      aiOut[A.id] = {text:"", tasks:normTasks(data), mode:"tu-dong"};
+      log(`Trợ lý AI tạo ${aiOut[A.id].tasks.length} nhiệm vụ (${A.title}).`); save();
+    } else {
+      const r = await ai.sample(prompt, {signal:ai.ctl.signal, modelTier:A.tier, cache:false, onText:({text}) => { aiOut[A.id].text = text; aiOut[A.id].thinking = true; if (aiSel === A.id) refreshAIResult(); }});
+      aiOut[A.id] = {text:r.text, truncated:r.truncated, mode:"tu-dong"};
+      log(`Dùng trợ lý AI: ${A.title}.`); save();
+    }
+  } catch(e){
+    const code = e && e.code;
+    const keep = e && e.text && !A.json ? e.text : "";
+    if (code === "cancelled") aiOut[A.id] = keep ? {text:keep, mode:"tu-dong", truncated:true} : null;
+    else {
+      aiOut[A.id] = {text:keep, mode:"tu-dong", error: AI_ERR[code] || (e && e.message === "Không có nhiệm vụ hợp lệ" ? "AI không trả về nhiệm vụ hợp lệ. Bấm gửi lại." : AI_ERR.upstream_error)};
+      if (HIDE_CODES.includes(code)){ ai.state = "off"; }
+    }
+  } finally { ai.busy = false; ai.ctl = null; if (view === "ai") render(); }
+}
+
+/* ---- 5. Báo cáo ---- */
+function reportData(){
+  const p = plan(), rows = state.groups.map(g => {
+    const ts = tasksFor(g.id), pace = groupPace(g, p);
+    const ops = Math.min(g.members.length, p.turns[g.id]);
+    return {g, ts, pace, ops, n:g.members.length, turns:p.turns[g.id]};
+  });
+  let total = 0, done = 0; rows.forEach(r => { total += r.ts.length; done += r.pace.done; });
+  return {p, rows, total, done, pct: total ? Math.round(100 * done / total) : 0,
+    full: rows.filter(r => r.ts.length && r.pace.done === r.ts.length).length,
+    ops: rows.reduce((a, r) => a + r.ops, 0)};
+}
+function vReport(){
+  const R = reportData(), L = state.lesson;
+  const taskStats = state.tasks.map(t => { const gs = state.groups.filter(g => (state.assign[g.id] || []).includes(t.id)); return {t, n:gs.length, d:gs.filter(g => st(g.id, t.id) === "xong").length}; }).filter(x => x.n);
+  return head("Bước 5", "Báo cáo buổi học", `${esc(L.title)} · Lớp ${esc(L.grade)} · ${L.students} học sinh · ${L.groups} nhóm · ${L.computers} máy` + (state.isDemo ? " · <b>Dữ liệu minh họa</b>" : "")) +
+  `<div class="stats">
+    <div class="stat"><span class="v">${R.pct}%</span><span class="k">nhiệm vụ hoàn thành (${R.done}/${R.total})</span></div>
+    <div class="stat"><span class="v">${R.full}/${state.groups.length}</span><span class="k">nhóm hoàn thành hết nhiệm vụ</span></div>
+    <div class="stat"><span class="v">${R.ops}/${L.students}</span><span class="k">học sinh có lượt làm Người thao tác chính (theo lịch)</span></div>
+    <div class="stat"><span class="v">${state.aiLog.length}</span><span class="k">gợi ý AI đã lưu</span></div>
+  </div>
+  <section class="panel"><div class="panel-title"><h3>Kết quả theo nhóm</h3></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Nhóm</th><th class="c">Hoàn thành</th><th>Tình trạng</th><th class="c">Lượt máy</th><th class="c">Được thao tác</th><th>Nhận xét của giáo viên</th></tr></thead><tbody>
+    ${R.rows.map(r => `<tr><td><b>${esc(r.g.name)}</b>${state.flags[r.g.id] ? ` <span class="chip bad">Cần hỗ trợ</span>` : ""}</td><td class="c num">${r.pace.done}/${r.ts.length}</td><td><span class="chip ${r.pace.k === "bad" ? "bad" : "ok"}">${r.pace.t}</span></td><td class="c num">${r.turns}</td><td class="c num">${r.ops}/${r.n}</td><td>${esc(state.notes[r.g.id] || "")}</td></tr>`).join("")}
+    </tbody></table></div></section>
+  <section class="panel"><div class="panel-title"><h3>Kết quả theo nhiệm vụ</h3></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Nhiệm vụ</th><th>Hình thức</th><th>Mức độ</th><th class="c">Số nhóm hoàn thành</th></tr></thead><tbody>
+    ${taskStats.map(x => `<tr><td>${esc(x.t.title)}</td><td>${TYPES[x.t.type]}</td><td>${LEVELS[x.t.level]}</td><td class="c num">${x.d}/${x.n}</td></tr>`).join("")}
+    </tbody></table></div></section>
+  <div class="grid2">
+    <section class="panel"><div class="panel-title"><h3>Nhận xét và gợi ý của AI</h3><button class="btn sm ai" data-go="ai" data-preset="summary">Tạo tổng kết bằng AI</button></div>
+      ${state.aiLog.length ? state.aiLog.map(savedHtml).join("") : `<p class="muted">Chưa lưu gợi ý nào. Vào Trợ lý AI → “Tổng kết & gợi ý buổi sau”, rồi bấm “Lưu vào báo cáo”.</p>`}</section>
+    <section class="panel"><div class="panel-title"><h3>Nhật ký buổi học</h3></div>
+      <div class="timeline">${state.log.length ? state.log.slice().reverse().slice(0, 40).map(l => `<div><time>${hhmm(l.at)}</time><span>${esc(l.text)}</span></div>`).join("") : `<p class="muted">Chưa có hoạt động.</p>`}</div></section>
+  </div>
+  <section class="panel"><div class="panel-title"><h3>Lưu và xuất dữ liệu</h3></div>
+    <div class="row">
+      <button class="btn primary" data-act="exp-html">Tải báo cáo (.html)</button>
+      <button class="btn" data-act="exp-csv">Tải bảng tiến độ (.csv)</button>
+      <button class="btn" data-act="exp-json">Sao lưu dữ liệu (.json)</button>
+      <label class="btn" for="imp-json">Nhập dữ liệu (.json)</label><input type="file" id="imp-json" accept=".json,application/json" hidden>
+    </div>
+    <p class="small muted">Dữ liệu tự lưu trong trình duyệt của máy này và sẽ mất nếu xóa dữ liệu trình duyệt hoặc mở trên máy khác. Sau mỗi buổi học, hãy sao lưu tệp .json.</p>
+    <div class="row"><button class="btn" data-act="new-session">Tạo buổi học mới</button><button class="btn danger" data-act="load-demo">Khôi phục dữ liệu minh họa</button></div>
+  </section>`;
+}
+function reportHTML(){
+  const R = reportData(), L = state.lesson, d = new Date();
+  const css = "body{font-family:'Be Vietnam Pro',Segoe UI,Arial,sans-serif;max-width:900px;margin:24px auto;padding:0 16px;color:#15213b;line-height:1.5}h1{font-size:22px}h2{font-size:17px;margin-top:22px}table{border-collapse:collapse;width:100%;font-size:14px}td,th{border:1px solid #cfd7e6;padding:6px 8px;text-align:left;vertical-align:top}th{background:#eef2f9}.note{background:#fff3c9;padding:6px 10px;border-radius:6px}";
+  return `<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Báo cáo – ${esc(L.title)}</title><style>${css}</style></head><body>
+<h1>Báo cáo buổi học: ${esc(L.title)}</h1>
+<p>Tin học lớp ${esc(L.grade)} · Xuất lúc ${hhmm(d)} ngày ${d.toLocaleDateString("vi-VN")} · Tạo bằng ứng dụng AI Điều Phối Lớp Học Tin Học</p>
+${state.isDemo ? `<p class="note"><b>Lưu ý:</b> báo cáo này dùng dữ liệu minh họa, không phải số liệu thật của lớp học.</p>` : ""}
+<h2>Điều kiện tổ chức</h2><p>Sĩ số ${L.students}; ${L.groups} nhóm; ${L.computers} máy dùng được; tiết ${L.period} phút; hoạt động nhóm ${L.duration} phút chia ${R.p.R} lượt × ${L.slot} phút.</p>
+<p><b>Mục tiêu:</b><br>${esc(L.goals).replace(/\n/g, "<br>")}</p>
+<h2>Tổng quan</h2><ul><li>Nhiệm vụ hoàn thành: ${R.done}/${R.total} (${R.pct}%)</li><li>Nhóm hoàn thành hết nhiệm vụ: ${R.full}/${state.groups.length}</li><li>Học sinh có lượt làm Người thao tác chính (theo lịch): ${R.ops}/${L.students}</li></ul>
+<h2>Kết quả theo nhóm</h2><table><tr><th>Nhóm</th><th>Hoàn thành</th><th>Tình trạng</th><th>Lượt máy</th><th>Được thao tác</th><th>Nhận xét</th></tr>
+${R.rows.map(r => `<tr><td>${esc(r.g.name)}</td><td>${r.pace.done}/${r.ts.length}</td><td>${r.pace.t}</td><td>${r.turns}</td><td>${r.ops}/${r.n}</td><td>${esc(state.notes[r.g.id] || "")}</td></tr>`).join("")}</table>
+<h2>Chi tiết nhiệm vụ</h2><table><tr><th>Nhóm</th><th>Nhiệm vụ</th><th>Trạng thái</th></tr>
+${state.groups.map(g => tasksFor(g.id).map(t => `<tr><td>${esc(g.name)}</td><td>${esc(t.title)}</td><td>${STATUS[st(g.id, t.id)]}</td></tr>`).join("")).join("")}</table>
+<h2>Gợi ý của trợ lý AI đã lưu</h2>${state.aiLog.length ? state.aiLog.map(x => `<h3 style="font-size:15px">${esc(x.title)} – ${x.mode === "tu-dong" ? "AI tự động (Claude)" : "Thủ công: dán từ AI bên ngoài"} – ${hhmm(x.at)}</h3>${md(x.output)}`).join("") : "<p>Không có.</p>"}
+<h2>Nhật ký</h2><ul>${state.log.map(l => `<li>${hhmm(l.at)} – ${esc(l.text)}</li>`).join("")}</ul>
+</body></html>`;
+}
+function reportCSV(){
+  const q = v => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+  const rows = [["Nhóm","Số HS","Nhiệm vụ","Hình thức","Mức độ","Trạng thái","Nhận xét nhóm"]];
+  state.groups.forEach(g => tasksFor(g.id).forEach(t => rows.push([g.name, g.members.length, t.title, TYPES[t.type], LEVELS[t.level], STATUS[st(g.id, t.id)], state.notes[g.id] || ""])));
+  return "\ufeff" + rows.map(r => r.map(q).join(",")).join("\r\n");
+}
+async function offerFile(filename, data){
+  if (ai.downloads){
+    try { await ai.downloads.save({filename, data}); toast("Đã tải " + filename); return; }
+    catch(e){ if (e && e.code === "declined") return; }
+  }
+  if (!ai.framed){
+    try { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([data], {type:"text/plain;charset=utf-8"})); a.download = filename; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); toast("Đã tải " + filename); return; } catch(e){}
+  }
+  modal(`<h3>Sao chép nội dung ${esc(filename)}</h3><p class="small muted">Trình xem này không cho tải tệp trực tiếp. Hãy sao chép nội dung dưới đây và lưu thành tệp <b>${esc(filename)}</b>.</p><textarea id="copy-area" readonly>${esc(data)}</textarea><div class="row"><button class="btn primary" data-act="copy-area">Sao chép</button><button class="btn" data-act="close-modal">Đóng</button></div>`);
+}
+
+/* ---- Hướng dẫn ---- */
+function vGuide(){
+  return head("Hướng dẫn", "Cách dùng trong một tiết học", "") +
+  `<div class="grid2 guide">
+    <section class="panel"><h3>Quy trình 6 bước</h3><ol>
+      <li><b>Thiết lập buổi học:</b> nhập tên bài, mục tiêu, sĩ số, số nhóm, số máy dùng được và thời lượng. Xem phương án gợi ý, bấm “Áp dụng phương án”.</li>
+      <li><b>Nhóm & phân vai:</b> xem lịch luân phiên (nhóm nào lên máy, nhóm nào làm tại chỗ ở mỗi lượt) và vai của từng bạn. Có thể chiếu bảng này lên màn hình lớp.</li>
+      <li><b>Ngân hàng nhiệm vụ:</b> chọn nhiệm vụ cho từng nhóm, sắp thứ tự, sửa hoặc thêm nhiệm vụ.</li>
+      <li><b>Theo dõi tiến độ:</b> bấm “Bắt đầu lượt”, đi quan sát và bấm trạng thái từng nhiệm vụ; ghi nhận xét ngắn; hết giờ bấm “Sang lượt tiếp”.</li>
+      <li><b>Trợ lý AI:</b> dùng khi cần gợi ý: phương án điều phối, nhiệm vụ phân hóa, việc cho nhóm chờ máy, câu hỏi gợi mở, xử lý nhóm sớm/chậm.</li>
+      <li><b>Báo cáo:</b> tạo tổng kết bằng AI, tải báo cáo .html / bảng .csv và sao lưu .json.</li></ol></section>
+    <section class="panel"><h3>Phần nào dùng AI, phần nào không</h3>
+      <div class="tbl-wrap"><table><thead><tr><th>Chức năng</th><th>Cách hoạt động</th></tr></thead><tbody>
+        <tr><td>Chia nhóm, lịch luân phiên, đổi vai, cảnh báo, phương án chia nhóm khác</td><td>Quy tắc lập trình (tính toán cố định, không dùng AI)</td></tr>
+        <tr><td>Báo nhóm chậm / xong sớm, thống kê báo cáo</td><td>Quy tắc lập trình, so tiến độ với lịch</td></tr>
+        <tr><td>Đề xuất điều phối, tạo nhiệm vụ phân hóa, hoạt động chờ máy, câu hỏi gợi mở, xử lý nhóm sớm/chậm, tổng kết, hỏi tự do</td><td><b>AI tạo sinh (Claude)</b>, gọi trực tiếp khi mở trên claude.ai; nếu không gọi được thì dùng chế độ thủ công</td></tr>
+      </tbody></table></div>
+      <p class="small">Mỗi lần gửi, giáo viên xem được chính xác nội dung gửi cho AI. AI chỉ đề xuất; nhiệm vụ do AI tạo chỉ vào ngân hàng khi giáo viên chọn và bấm thêm.</p></section>
+    <section class="panel"><h3>Bảo vệ dữ liệu học sinh</h3>
+      <p>Học sinh được đánh mã (HS01, HS02…). Tên hiển thị giáo viên tự đặt chỉ lưu trên máy này và không được gửi cho AI. Dữ liệu gửi AI gồm: thông tin bài học, số lượng, lịch luân phiên, trạng thái nhiệm vụ theo nhóm và nhận xét của giáo viên. Vì vậy không ghi họ tên học sinh vào ô nhận xét.</p></section>
+    <section class="panel"><h3>Giới hạn hiện tại</h3>
+      <p>Dữ liệu chỉ lưu trong trình duyệt của máy đang dùng; hãy sao lưu .json sau mỗi buổi. Chế độ AI tự động cần mở trang trên claude.ai khi đã đăng nhập, và mỗi lần gửi dùng hạn mức của tài khoản đó. Mô hình mặc định là 1 máy cho mỗi nhóm. Số liệu đang hiển thị khi mở lần đầu là <b>dữ liệu minh họa</b>.</p></section>
+  </div>`;
+}
+
+/* ============ Modal ============ */
+function modal(html){ document.getElementById("overlay").innerHTML = `<div class="modal-bg" data-act="close-modal-bg"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`; }
+function closeModal(){ document.getElementById("overlay").innerHTML = ""; }
+let pendingConfirm = null;
+function confirmBox(text, okLabel, fn){ pendingConfirm = fn; modal(`<h3>Xác nhận</h3><p>${text}</p><div class="row"><button class="btn primary" data-act="confirm-ok">${okLabel}</button><button class="btn" data-act="close-modal">Hủy</button></div>`); }
+
+/* ============ Sự kiện ============ */
+function applySetup(){
+  setupErrors = validateLesson(draft);
+  if (Object.keys(setupErrors).length){ render(); toast("Còn thông tin thiếu hoặc chưa hợp lệ."); const k = Object.keys(setupErrors)[0]; document.getElementById("f-" + k)?.focus(); return; }
+  const L = numLesson(draft), changedGroups = L.groups !== state.lesson.groups || L.students !== state.lesson.students;
+  const doApply = () => {
+    const oldAssign = state.assign[state.groups[0]?.id] || DEFAULT_ASSIGN;
+    state.lesson = L;
+    if (changedGroups){
+      state.groups = makeGroups(L, state.groups); state.progress = {}; state.notes = {}; state.flags = {};
+      const a = {}; state.groups.forEach(g => a[g.id] = (state.assign[g.id] || oldAssign).slice()); state.assign = a;
+    }
+    state.run = {round:1, remaining:null, endAt:null, running:false};
+    log(`Áp dụng phương án: ${L.groups} nhóm, ${L.computers} máy, ${Math.floor(L.duration / L.slot)} lượt × ${L.slot} phút.`);
+    save(); draft = null; toast("Đã áp dụng phương án"); go("groups");
+  };
+  const hasProgress = Object.keys(state.progress).length > 0;
+  if (changedGroups && hasProgress) confirmBox("Sĩ số hoặc số nhóm thay đổi nên nhóm sẽ được chia lại và <b>tiến độ, nhận xét đã ghi sẽ bị xóa</b>.", "Áp dụng và chia lại nhóm", doApply);
+  else doApply();
+}
+function startEdit(t){
+  editing = t ? {...clone(t), stepsText:t.steps.join("\n")} : {_new:true, id:uid("t-gv"), title:"", type:"tai-cho", level:"co-ban", minutes:state.lesson.slot, role:"", stepsText:"", product:"", criteria:"", hint:"", source:"Giáo viên bổ sung"};
+  render(); document.getElementById("editor")?.scrollIntoView({block:"start"}); document.getElementById("e-title")?.focus();
+}
+function saveEdit(){
+  const t = editing, err = {};
+  if (!t.title.trim()) err.title = "Nhập tên nhiệm vụ.";
+  const m = Math.round(+t.minutes); if (!(m >= 1 && m <= 45)) err.minutes = "Thời gian từ 1 đến 45 phút.";
+  const steps = t.stepsText.split("\n").map(s => s.trim()).filter(Boolean); if (!steps.length) err.steps = "Nhập ít nhất một bước.";
+  if (Object.keys(err).length){ editing._err = err; render(); toast("Còn thông tin thiếu."); return; }
+  const out = {id:t.id, type:t.type, level:t.level, minutes:m, role:t.role, source:t.source.trim(), title:t.title.trim(), steps, product:t.product.trim(), criteria:t.criteria.trim(), hint:t.hint.trim(), ai:t.ai};
+  const i = state.tasks.findIndex(x => x.id === t.id);
+  if (i >= 0) state.tasks[i] = out; else state.tasks.push(out);
+  log(`${i >= 0 ? "Sửa" : "Thêm"} nhiệm vụ: ${out.title}.`);
+  editing = null; save(); render(); toast("Đã lưu nhiệm vụ");
+}
+
+document.addEventListener("click", e => {
+  const g = e.target.closest("[data-go]");
+  if (g){ if (g.dataset.preset) aiSel = g.dataset.preset; go(g.dataset.go); return; }
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const a = b.dataset.act;
+  if (a === "close-modal-bg"){ if (e.target === b) closeModal(); return; }
+  switch (a){
+    case "apply-setup": applySetup(); break;
+    case "reset-draft": draft = clone(state.lesson); setupErrors = {}; render(); break;
+    case "use-alt": draft.groups = +b.dataset.g; setupErrors = validateLesson(draft); render(); toast(`Đã chọn ${b.dataset.g} nhóm – bấm “Áp dụng phương án” để dùng.`); break;
+    case "sel-group": groupSel = b.dataset.g; render(); break;
+    case "filter": taskFilter[b.dataset.k] = b.dataset.v; render(); break;
+    case "new-task": startEdit(null); break;
+    case "edit-task": startEdit(taskById(b.dataset.id)); break;
+    case "cancel-task": editing = null; render(); break;
+    case "save-task": saveEdit(); break;
+    case "del-task": { const t = taskById(b.dataset.id); confirmBox(`Xóa nhiệm vụ “${esc(t.title)}”? Trạng thái của nhiệm vụ này ở các nhóm cũng bị xóa.`, "Xóa nhiệm vụ", () => {
+        state.tasks = state.tasks.filter(x => x.id !== t.id); Object.keys(state.assign).forEach(k => state.assign[k] = state.assign[k].filter(x => x !== t.id));
+        Object.keys(state.progress).forEach(k => { if (k.endsWith("|" + t.id)) delete state.progress[k]; }); log(`Xóa nhiệm vụ: ${t.title}.`); save(); render(); }); break; }
+    case "mv": { const i = state.tasks.findIndex(x => x.id === b.dataset.id), j = i + (+b.dataset.d); if (j < 0 || j >= state.tasks.length) break; [state.tasks[i], state.tasks[j]] = [state.tasks[j], state.tasks[i]]; save(); render(); break; }
+    case "status": { const key = b.dataset.g + "|" + b.dataset.t, prev = st(b.dataset.g, b.dataset.t);
+      if (prev === b.dataset.v) break;
+      state.progress[key] = {status:b.dataset.v, at:Date.now()};
+      const gn = state.groups.find(x => x.id === b.dataset.g)?.name, tn = taskById(b.dataset.t)?.title;
+      log(`${gn}: “${tn}” → ${STATUS[b.dataset.v]}.`); save(); render(); break; }
+    case "flag": state.flags[b.dataset.g] = !state.flags[b.dataset.g]; log(`${state.groups.find(x => x.id === b.dataset.g)?.name}: ${state.flags[b.dataset.g] ? "đánh dấu cần hỗ trợ" : "bỏ đánh dấu cần hỗ trợ"}.`); save(); render(); break;
+    case "timer-toggle": { const r = state.run;
+      if (r.running){ r.remaining = remaining(); r.running = false; r.endAt = null; }
+      else { r.endAt = Date.now() + remaining() * 1000; r.running = true; log(`Bắt đầu Lượt ${r.round}.`); startTimerLoop(); }
+      save(); render(); break; }
+    case "timer-reset": state.run.remaining = null; state.run.endAt = state.run.running ? Date.now() + state.lesson.slot * 60000 : null; save(); tick(); break;
+    case "next-round": { const p = plan(); if (state.run.round >= p.R) break; state.run.round++; state.run.remaining = null; state.run.endAt = state.run.running ? Date.now() + state.lesson.slot * 60000 : null; log(`Chuyển sang Lượt ${state.run.round}.`); save(); render(); break; }
+    case "ai-sel": aiSel = b.dataset.id; render(); break;
+    case "ai-run": runAI(); break;
+    case "ai-stop": ai.ctl?.abort(); break;
+    case "ai-copy": { const A = AI_ACTIONS.find(x => x.id === aiSel); const text = A.build(aiForm[A.id] || {});
+      (navigator.clipboard?.writeText(text) || Promise.reject()).then(() => toast("Đã sao chép yêu cầu"), () => { const d = document.querySelector("details.prompt"); if (d) d.open = true; const pre = document.getElementById("ai-prompt"); if (pre){ const rg = document.createRange(); rg.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(rg); } toast("Không sao chép tự động được: đã bôi đen nội dung, hãy nhấn Ctrl+C."); }); break; }
+    case "ai-manual-use": { const A = AI_ACTIONS.find(x => x.id === aiSel), txt = (aiManual[A.id] || "").trim();
+      if (!txt){ toast("Hãy dán câu trả lời trước."); document.getElementById("ai-manual")?.focus(); break; }
+      if (A.json){ try { aiOut[A.id] = {text:"", tasks:normTasks(parseLooseJSON(txt)), mode:"thu-cong"}; } catch(err){ aiOut[A.id] = {text:txt, mode:"thu-cong", error:"Không đọc được danh sách nhiệm vụ trong câu trả lời đã dán. Có thể vẫn lưu nội dung vào báo cáo."}; } }
+      else aiOut[A.id] = {text:txt, mode:"thu-cong"};
+      render(); break; }
+    case "ai-save": { const A = AI_ACTIONS.find(x => x.id === aiSel), o = aiOut[A.id]; if (!o?.text) break;
+      state.aiLog.push({id:uid("ai"), action:A.id, title:A.title, at:Date.now(), mode:o.mode, output:o.text}); o.saved = true; log(`Lưu gợi ý AI vào báo cáo: ${A.title}${o.mode === "thu-cong" ? " (thủ công)" : ""}.`); save(); render(); toast("Đã lưu vào báo cáo"); break; }
+    case "ai-add-tasks": { const A = AI_ACTIONS.find(x => x.id === aiSel), o = aiOut[A.id]; if (!o?.tasks) break;
+      const picked = o.tasks.filter(t => t._pick !== false).map(t => { const c = {...t}; delete c._pick; if (o.mode === "thu-cong") c.source = "Trợ lý AI bên ngoài (dán thủ công) – giáo viên đã duyệt"; return c; });
+      if (!picked.length){ toast("Chưa chọn nhiệm vụ nào."); break; }
+      state.tasks.push(...picked); o.added = true; log(`Thêm ${picked.length} nhiệm vụ do AI đề xuất vào ngân hàng (chưa giao cho nhóm).`); save(); render(); toast(`Đã thêm ${picked.length} nhiệm vụ. Vào Ngân hàng nhiệm vụ để giao cho nhóm.`); break; }
+    case "exp-html": offerFile("bao-cao-buoi-hoc.html", reportHTML()); break;
+    case "exp-csv": offerFile("tien-do-nhom.csv", reportCSV()); break;
+    case "exp-json": offerFile("sao-luu-dieu-phoi-lop-hoc.json", JSON.stringify(state, null, 1)); break;
+    case "new-session": confirmBox("Tạo buổi học mới: giữ thông tin lớp và ngân hàng nhiệm vụ, <b>xóa tiến độ, nhận xét, gợi ý AI và nhật ký</b>. Nên sao lưu .json trước.", "Tạo buổi học mới", () => {
+        state.progress = {}; state.notes = {}; state.flags = {}; state.aiLog = []; state.log = []; state.isDemo = false; state.run = {round:1, remaining:null, endAt:null, running:false};
+        log("Bắt đầu buổi học mới."); save(); aiOut = {}; draft = null; go("setup"); }); break;
+    case "load-demo": confirmBox("Thay toàn bộ dữ liệu hiện tại bằng dữ liệu minh họa? Dữ liệu chưa sao lưu sẽ mất.", "Khôi phục minh họa", () => { state = defaultState(); aiOut = {}; draft = null; save(); go("setup"); }); break;
+    case "confirm-ok": { const fn = pendingConfirm; pendingConfirm = null; closeModal(); fn && fn(); break; }
+    case "close-modal": closeModal(); break;
+    case "copy-area": { const ta = document.getElementById("copy-area"); ta.select(); (navigator.clipboard?.writeText(ta.value) || Promise.reject()).then(() => toast("Đã sao chép"), () => toast("Hãy nhấn Ctrl+C để sao chép phần đã bôi đen.")); break; }
+  }
+});
+document.addEventListener("input", e => {
+  const t = e.target;
+  if (t.dataset.draft){ draft[t.dataset.draft] = t.value; setupErrors = validateLesson(draft);
+    const pv = document.getElementById("setup-preview"); if (pv) pv.innerHTML = setupPreview(); return; }
+  if (t.dataset.edit){ editing[t.dataset.edit] = t.value; return; }
+  if (t.dataset.note){ state.notes[t.dataset.note] = t.value; save(); return; }
+  if (t.dataset.member){ const [gid, mi] = t.dataset.member.split("|"); const g = state.groups.find(x => x.id === gid); g.members[+mi].label = t.value.trim() || g.members[+mi].code; save(); return; }
+  if (t.dataset.aif){ (aiForm[aiSel] ||= {})[t.dataset.aif] = t.value; const pre = document.getElementById("ai-prompt"); if (pre){ try { pre.textContent = AI_ACTIONS.find(x => x.id === aiSel).build(aiForm[aiSel]); } catch(err){} } return; }
+  if (t.dataset.manual){ aiManual[t.dataset.manual] = t.value; return; }
+});
+document.addEventListener("change", e => {
+  const t = e.target;
+  if (t.dataset.draft){ if (view === "setup") { const keep = t.id; render(); document.getElementById(keep)?.focus(); } return; }
+  if (t.dataset.member){ render(); return; }
+  if (t.dataset.aif && t.tagName === "SELECT"){ render(); return; }
+  if (t.dataset.gen){ const o = aiOut[aiSel]; if (o?.tasks) o.tasks[+t.dataset.gen]._pick = t.checked; return; }
+  if (t.dataset.assign){ const [gid, tid] = t.dataset.assign.split("|"); const arr = state.assign[gid] ||= [];
+    if (t.checked){ if (!arr.includes(tid)) arr.push(tid); } else state.assign[gid] = arr.filter(x => x !== tid);
+    state.assign[gid] = state.tasks.map(x => x.id).filter(id => state.assign[gid].includes(id)); save(); render(); return; }
+  if (t.dataset.assignall){ const tid = t.dataset.assignall; state.groups.forEach(g => { const arr = state.assign[g.id] ||= []; if (t.checked){ if (!arr.includes(tid)) arr.push(tid); } else state.assign[g.id] = arr.filter(x => x !== tid); });
+    log(`${t.checked ? "Giao" : "Bỏ giao"} “${taskById(tid)?.title}” cho tất cả các nhóm.`); save(); render(); return; }
+  if (t.id === "run-round"){ state.run.round = +t.value; state.run.remaining = null; state.run.endAt = state.run.running ? Date.now() + state.lesson.slot * 60000 : null; log(`Chọn Lượt ${t.value}.`); save(); render(); return; }
+  if (t.id === "imp-json" && t.files[0]){ const fr = new FileReader(); fr.onload = () => { try { const o = JSON.parse(fr.result); if (o.v !== 1 || !o.lesson || !Array.isArray(o.groups) || !Array.isArray(o.tasks)) throw 0;
+      state = o; state.run.running = false; state.run.endAt = null; draft = null; aiOut = {}; save(); render(); toast("Đã nhập dữ liệu"); } catch(err){ toast("Tệp không đúng định dạng sao lưu của ứng dụng."); } }; fr.readAsText(t.files[0]); t.value = ""; }
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape" && document.getElementById("overlay").innerHTML) closeModal(); });
+
+if (state.run.running) startTimerLoop();
+startTimerLoop();
+render();
+initAI();
+</script>
